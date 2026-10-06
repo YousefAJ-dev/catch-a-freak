@@ -29,12 +29,29 @@ local species: { [number]: { Species } } = {
 		{ name = "Splitjaw", tier = 3, shape = "Ball", size = Vector3.new(6, 6, 6), color = Color3.fromRGB(185, 55, 65), eyes = 1 },
 		{ name = "Wobbler", tier = 3, shape = "Block", size = Vector3.new(3, 7.5, 3), color = Color3.fromRGB(165, 145, 225), eyes = 3 },
 	},
+	[4] = {
+		{ name = "Voidmoth", tier = 4, shape = "Block", size = Vector3.new(7, 3, 4), color = Color3.fromRGB(45, 40, 70), eyes = 4 },
+		{ name = "Gnashling", tier = 4, shape = "Ball", size = Vector3.new(6.5, 6.5, 6.5), color = Color3.fromRGB(215, 190, 150), eyes = 2 },
+		{ name = "Bloatworm", tier = 4, shape = "Cylinder", size = Vector3.new(4, 6, 6), color = Color3.fromRGB(190, 120, 140), eyes = 2 },
+	},
+	[5] = {
+		{ name = "Hexwing", tier = 5, shape = "Block", size = Vector3.new(8, 4, 4.5), color = Color3.fromRGB(120, 200, 150), eyes = 6 },
+		{ name = "Grimjaw", tier = 5, shape = "Ball", size = Vector3.new(7.5, 7.5, 7.5), color = Color3.fromRGB(110, 30, 35), eyes = 2 },
+		{ name = "Pulsar", tier = 5, shape = "Cylinder", size = Vector3.new(9, 4, 4), color = Color3.fromRGB(240, 235, 140), eyes = 1 },
+	},
 }
 
 return {
 	species = species,
 	-- Rings that hold freaks.
-	spawnTiers = { 1, 2, 3 },
+	spawnTiers = { 1, 2, 3, 4, 5 },
+	-- Only rings near players are simulated (DESIGN.md section 12): a ring fills
+	-- when a player comes within activationMargin studs of it and empties once
+	-- nobody has been that close for deactivateAfter seconds.
+	activationMargin = 60,
+	deactivateAfter = 60,
+	-- Clients only animate freaks within this distance of the camera.
+	renderDistance = 300,
 	respawnDelay = 3, -- seconds after a freak is caught or expires
 	lifetimeMin = 120,
 	lifetimeMax = 240,

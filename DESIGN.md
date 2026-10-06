@@ -17,7 +17,7 @@ All numbers in this document are **starting values to tune during playtests**. K
 | Rarities | 5: Common, Uncommon, Rare, Epic, Legendary. Rarities are data and can be edited later. |
 | Rarity odds | Common 50%, Uncommon 30%, Rare 14%, Epic 5%, Legendary 1%, rolled on every spawn. |
 | Species | 3 per tier, 15 at launch. |
-| Population | A fixed 70–90 freaks per ring: 70, 75, 80, 85, 90 for Rings 1–5; later rings 90. Only rings with players near them have freaks at all (section 12). |
+| Population | Every ring has the same density of freaks as Ring 1 (70 freaks, about 3 per 10,000 square studs), so freak counts grow with ring area: 70, 112, 154, 196, 238 for Rings 1–5. Only rings with players near them have freaks at all (section 12). |
 | Carrying | Up to 9 freaks at once. |
 | Value | Each tier is worth 10× the one before it. |
 | Death | Lose every carried freak. Keep money, upgrades, items, and farm. Respawn at the shop. |
@@ -57,7 +57,7 @@ Walls:
 
 Growing to 10 rings later: each new ring adds a tier wall at the old boundary and moves the boundary 150 studs out (10 rings → boundary at 1675). Two things to handle then: a Roblox part can't be wider than 2048 studs, so ground discs past radius 1024 must be split into pieces; and the outermost walls need longer segments to keep the part count reasonable.
 
-Because rings are concentric and equally wide, outer rings have more ground area (Ring 5 has about 2.7× Ring 1's area), so the same 70–90 freaks are more spread out. If that ever feels sparse, tighten freak wandering or add a few freaks rather than widening rings.
+Because rings are concentric and equally wide, outer rings have more ground area (Ring 5 has 3.4× Ring 1's area). Freak counts scale with area (section 5), so every ring is equally crowded.
 
 - Doors sit at north, east, south, and west on every wall, lined up so a player can run straight out through all of them.
 - Each door is 24 studs wide.
@@ -132,10 +132,12 @@ A freak is defined by species, tier, and rarity.
 | Tier | Ring | Population | Radiation DPS | Base income ($/sec) | Base hold (sec) | Freak speed |
 |------|------|------------|---------------|---------------------|-----------------|-------------|
 | 1 | Ring 1 | 70 | 8 | 1 | 1.0 | 6 |
-| 2 | Ring 2 | 75 | 16 | 10 | 2.0 | 9 |
-| 3 | Ring 3 | 80 | 32 | 100 | 3.5 | 12 |
-| 4 | Ring 4 | 85 | 64 | 1,000 | 5.5 | 14 |
-| 5 | Ring 5 | 90 | 128 | 10,000 | 8.0 | 16 |
+| 2 | Ring 2 | 112 | 16 | 10 | 2.0 | 9 |
+| 3 | Ring 3 | 154 | 32 | 100 | 3.5 | 12 |
+| 4 | Ring 4 | 196 | 64 | 1,000 | 5.5 | 14 |
+| 5 | Ring 5 | 238 | 128 | 10,000 | 8.0 | 16 |
+
+Population is Ring 1's density (70 freaks over Ring 1's area) times each ring's area, computed in config, so it stays right if ring width or count changes. Future rings continue the pattern: 280, 322, 364, 406, 448 for Rings 6–10.
 
 ### Rarities
 
@@ -379,7 +381,7 @@ The server owns and validates everything that matters: money, health, radiation,
 
 ### Freak performance
 
-A full 5-ring map holds 400 freaks (1,000+ at 10 rings), so ring count must not drive the cost:
+A full 5-ring map holds 770 freaks (about 2,600 at 10 rings), so ring count must not drive the cost:
 
 - **Only rings near players are simulated.** A ring's freaks spawn (its full population at once) when any player comes within 60 studs of it, and all despawn once no player has been that close for 60 seconds. With 8 players, at most 8 rings are ever active and usually 2–3, so 10 rings cost about what 2–3 do. Despawning ends any traps and pins in that ring.
 - **Clients only animate nearby freaks**, within 300 studs; farther ones are left where they are. Workspace streaming keeps distant parts of the map off the client entirely.

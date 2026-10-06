@@ -111,6 +111,10 @@ local function onBuyUpgrade(player: Player, upgradeId: any)
 		notify(player, ("%s is already at max level"):format(upgrade.name))
 		return
 	end
+	if level >= Formulas.upgradeLevelCap(upgrade.id, data.highestTier) then
+		notify(player, ("%s level %d unlocks at Tier %d"):format(upgrade.name, level + 1, Formulas.tierForUpgradeLevel(upgrade.id, level + 1)))
+		return
+	end
 	local cost = Formulas.upgradeCost(upgrade.id, level)
 	if not DataService.trySpend(player, cost) then
 		notify(player, ("You need %s for %s level %d"):format(Format.money(cost), upgrade.name, level + 1))

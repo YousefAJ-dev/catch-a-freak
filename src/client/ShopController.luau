@@ -37,7 +37,7 @@ local EFFECT: { [string]: { label: string, value: (level: number) -> string } } 
 	grip = {
 		label = "Grab time",
 		value = function(level)
-			return ("−%d%%"):format(math.round(Upgrades.grip.effectPerLevel * level * 100))
+			return ("−%d%%"):format(math.round((1 - Formulas.gripMultiplier(level)) * 100))
 		end,
 	},
 	farmCapacity = {
@@ -66,14 +66,19 @@ function ShopController.start()
 	end
 
 	local function renderUpgrades()
+		local tier = (player:GetAttribute("HighestTier") :: number?) or 1
 		for i, id in UPGRADE_ORDER do
 			local upgrade = Upgrades[id]
 			local level = (player:GetAttribute("Upgrade_" .. id) :: number?) or 0
 			local maxed = level >= upgrade.maxLevel
+			local capped = not maxed and level >= Formulas.upgradeLevelCap(id, tier)
 			local title = ("%s  ·  Lv %d/%d"):format(upgrade.name, level, upgrade.maxLevel)
 			local effect = EFFECT[id]
 			if maxed then
 				UiKit.row(panel.list, i, title, ("%s %s"):format(effect.label, effect.value(level)), "Max level", "Max", UiKit.colors.go, false, function() end)
+			elseif capped then
+				local needed = Formulas.tierForUpgradeLevel(id, level + 1)
+				UiKit.row(panel.list, i, title, ("%s %s"):format(effect.label, effect.value(level)), ("Next level unlocks at Tier %d"):format(needed), ("Tier %d"):format(needed), UiKit.colors.go, false, function() end)
 			else
 				local cost = Formulas.upgradeCost(id, level)
 				local change = ("%s %s → %s"):format(effect.label, effect.value(level), effect.value(level + 1))

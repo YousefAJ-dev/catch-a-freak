@@ -21,20 +21,34 @@ local World = {}
 World.center = Vector3.new(0, 0, 0)
 World.groundY = 0
 
+-- Rings: all the same width, one per tier, starting at the safe-zone barrier.
+-- Adding a ring is just raising ringCount (plus its tier, species and gate).
+World.safeRadius = 175 -- the barrier; shop + inner ring are inside it
+World.ringWidth = 150
+World.ringCount = 5
+World.barrierHeight = 60
+World.wallHeight = 120
+
 World.zones = {
 	{ name = "Shop", innerRadius = 0, outerRadius = 40 },
-	{ name = "InnerRing", innerRadius = 40, outerRadius = 175 },
-	{ name = "Ring1", innerRadius = 175, outerRadius = 375, tier = 1 },
-	{ name = "Ring2", innerRadius = 375, outerRadius = 575, tier = 2 },
-	{ name = "Ring3", innerRadius = 575, outerRadius = 775, tier = 3 },
+	{ name = "InnerRing", innerRadius = 40, outerRadius = World.safeRadius },
 } :: { Zone }
-
 World.walls = {
-	{ name = "SafeBarrier", radius = 175, height = 60, doorKind = "Opening" },
-	{ name = "Tier2Wall", radius = 375, height = 120, doorKind = "TierDoor", tier = 2 },
-	{ name = "Tier3Wall", radius = 575, height = 120, doorKind = "TierDoor", tier = 3 },
-	{ name = "OuterBoundary", radius = 775, height = 120, doorKind = "None" },
+	{ name = "SafeBarrier", radius = World.safeRadius, height = World.barrierHeight, doorKind = "Opening" },
 } :: { Wall }
+for tier = 1, World.ringCount do
+	local inner = World.safeRadius + World.ringWidth * (tier - 1)
+	table.insert(World.zones, { name = "Ring" .. tier, innerRadius = inner, outerRadius = inner + World.ringWidth, tier = tier })
+	if tier > 1 then
+		table.insert(World.walls, { name = ("Tier%dWall"):format(tier), radius = inner, height = World.wallHeight, doorKind = "TierDoor", tier = tier })
+	end
+end
+table.insert(World.walls, {
+	name = "OuterBoundary",
+	radius = World.safeRadius + World.ringWidth * World.ringCount,
+	height = World.wallHeight,
+	doorKind = "None",
+})
 
 World.wallThickness = 4
 World.doorWidth = 24

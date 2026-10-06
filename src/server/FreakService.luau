@@ -1,6 +1,11 @@
 --!strict
 -- Freaks (DESIGN.md sections 5 and 12): spawning, lifetime, wandering, grabbing.
 --
+-- Only rings with a player nearby are simulated: a ring fills to its
+-- population when someone comes within FreakConfig.activationMargin studs and
+-- empties FreakConfig.deactivateAfter seconds after the last player leaves, so
+-- cost depends on where players are, not on how many rings exist.
+--
 -- Freaks are anchored models with no Humanoid. The server never animates them.
 -- Each freak has one waypoint at a time (from, to, start time, speed), published
 -- as model attributes; clients move the models locally (FreakRenderer), and the
@@ -270,8 +275,16 @@ local function zoneForTier(tier: number): World.Zone
 	error("no zone for tier " .. tier)
 end
 
--- Spawns one population freak in a tier's ring with a random species and rarity.
+-- Rings currently simulated, with the last time a player was near each one
+-- (os.clock()). A ring missing from this table has no population freaks.
+local activeRings: { [number]: { lastNear: number } } = {}
+
+-- Spawns one population freak in a tier's ring with a random species and
+-- rarity, if the ring is active and below its population.
 local function spawnInRing(tier: number)
+	if not activeRings[tier] or (population[tier] or 0) >= Tiers[tier].population then
+		return
+	end
 	local speciesList = FreakConfig.species[tier]
 	local species = speciesList[rng:NextInteger(1, #speciesList)]
 	local rarity = Rarities.byId[Formulas.rollRarity(rng:NextNumber())]
@@ -279,7 +292,7 @@ local function spawnInRing(tier: number)
 	spawnFreak(species, rarity, zone, randomPointInZone(zone), true)
 end
 
-function despawn(freak: Freak, _reason: string)
+function despawn(freak: Freak, reason: string)
 	if freaks[freak.id] ~= freak then
 		return
 	end
@@ -288,8 +301,64 @@ function despawn(freak: Freak, _reason: string)
 	if freak.counted then
 		local tier = freak.species.tier
 		population[tier] -= 1
-		task.delay(FreakConfig.respawnDelay, spawnInRing, tier)
+		if reason ~= "deactivated" then
+			task.delay(FreakConfig.respawnDelay, spawnInRing, tier)
+		end
 	end
+end
+
+-- A ring comes alive with its full population when a player approaches it.
+local function activateRing(tier: number)
+	activeRings[tier] = { lastNear = os.clock() }
+	for _ = (population[tier] or 0) + 1, Tiers[tier].population do
+		spawnInRing(tier)
+	end
+end
+
+-- Once nobody has been near a ring for a while, all its freaks go away
+-- (along with any pins on them) so empty rings cost nothing.
+local function deactivateRing(tier: number)
+	activeRings[tier] = nil
+	for _, freak in freaks do
+		if freak.counted and freak.species.tier == tier then
+			despawn(freak, "deactivated")
+		end
+	end
+end
+
+local function isPlayerNear(zone: World.Zone): boolean
+	for _, player in Players:GetPlayers() do
+		local character = player.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		if humanoid and root and humanoid.Health > 0 then
+			local offset = root.Position - World.center
+			local distance = Vector3.new(offset.X, 0, offset.Z).Magnitude
+			if distance >= zone.innerRadius - FreakConfig.activationMargin and distance <= zone.outerRadius + FreakConfig.activationMargin then
+				return true
+			end
+		end
+	end
+	return false
+end
+
+local function updateActiveRings()
+	for _, tier in FreakConfig.spawnTiers do
+		local state = activeRings[tier]
+		if isPlayerNear(zoneForTier(tier)) then
+			if state then
+				state.lastNear = os.clock()
+			else
+				activateRing(tier)
+			end
+		elseif state and os.clock() - state.lastNear > FreakConfig.deactivateAfter then
+			deactivateRing(tier)
+		end
+	end
+end
+
+function FreakService.isRingActive(tier: number): boolean
+	return activeRings[tier] ~= nil
 end
 
 -- Studio debug: spawns a freak of the given tier and rarity a few studs in
@@ -393,12 +462,6 @@ function FreakService.start()
 	folder.Name = "Freaks"
 	folder.Parent = workspace
 
-	for _, tier in FreakConfig.spawnTiers do
-		for _ = 1, Tiers[tier].population do
-			spawnInRing(tier)
-		end
-	end
-
 	Players.PlayerRemoving:Connect(function(player)
 		for _, freak in freaks do
 			freak.holdStarts[player] = nil
@@ -406,9 +469,11 @@ function FreakService.start()
 		end
 	end)
 
-	-- Expire old freaks, except ones someone is holding the grab on.
+	-- Once a second: start or stop rings by player proximity, and expire old
+	-- freaks (except ones someone is holding the grab on, or that are pinned).
 	task.spawn(function()
 		while true do
+			updateActiveRings()
 			task.wait(1)
 			local t = now()
 			for _, freak in freaks do

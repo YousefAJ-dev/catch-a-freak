@@ -61,8 +61,12 @@ end
 
 -- Seconds a player must hold the grab input on a freak.
 function Formulas.holdTime(tier: number, rarityId: string, gripLevel: number): number
-	local reduction = Upgrades.grip.effectPerLevel * gripLevel
-	return Tiers[tier].baseHold * Rarities.byId[rarityId].holdMultiplier * math.max(0, 1 - reduction)
+	return Tiers[tier].baseHold * Rarities.byId[rarityId].holdMultiplier * Formulas.gripMultiplier(gripLevel)
+end
+
+-- Multiplier on grab hold time from Stronger Grip (1 at level 0).
+function Formulas.gripMultiplier(gripLevel: number): number
+	return Upgrades.grip.effectPerLevel ^ gripLevel
 end
 
 -- Where a freak is on its current waypoint at time `now` (server time), and
@@ -105,12 +109,29 @@ function Formulas.farmCapacity(level: number): number
 end
 
 function Formulas.walkSpeed(shoesLevel: number): number
-	return PlayerConfig.baseWalkSpeed + Upgrades.shoes.effectPerLevel * shoesLevel
+	return math.min(PlayerConfig.baseWalkSpeed + Upgrades.shoes.effectPerLevel * shoesLevel, PlayerConfig.maxWalkSpeed)
 end
 
--- Multiplier on radiation damage from the Hazmat Suit (1 at level 0).
+-- Multiplier on radiation damage from the Hazmat Suit (1 at level 0). Each
+-- level multiplies, so gear keeps pace with radiation that doubles per ring.
 function Formulas.hazmatMultiplier(hazmatLevel: number): number
-	return 1 / (1 + Upgrades.hazmat.effectPerLevel * hazmatLevel)
+	return Upgrades.hazmat.effectPerLevel ^ hazmatLevel
+end
+
+-- The highest level of an upgrade a player can own right now. Gear unlocks
+-- levelsPerTier levels per unlocked tier; other upgrades only have a max.
+function Formulas.upgradeLevelCap(upgradeId: string, highestTier: number): number
+	local upgrade = Upgrades[upgradeId]
+	if upgrade.levelsPerTier then
+		return math.min(upgrade.maxLevel, upgrade.levelsPerTier * highestTier)
+	end
+	return upgrade.maxLevel
+end
+
+-- The tier a player needs before they can buy `level` of an upgrade.
+function Formulas.tierForUpgradeLevel(upgradeId: string, level: number): number
+	local perTier = Upgrades[upgradeId].levelsPerTier
+	return if perTier then math.ceil(level / perTier) else 1
 end
 
 -- Hours of farm income that can pile up while the player is offline.

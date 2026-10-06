@@ -84,6 +84,8 @@ local ZONE_COLORS = {
 	Ring1 = Color3.fromRGB(150, 160, 70),
 	Ring2 = Color3.fromRGB(150, 110, 60),
 	Ring3 = Color3.fromRGB(90, 70, 110),
+	Ring4 = Color3.fromRGB(60, 85, 105),
+	Ring5 = Color3.fromRGB(110, 55, 50),
 }
 
 local function buildGround(map: Instance)

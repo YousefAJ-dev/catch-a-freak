@@ -1,13 +1,15 @@
 --!strict
 -- Moves freak models along their server-published waypoints every frame
 -- (DESIGN.md section 12, "Freak performance"). The server never animates them.
--- All parts are anchored, so each frame is one BulkMoveTo of every freak part.
+-- All parts are anchored, so each frame is one BulkMoveTo of the freak parts
+-- within FreakConfig.renderDistance of the camera.
 
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Formulas = require(ReplicatedStorage.Shared.Formulas)
+local FreakConfig = require(ReplicatedStorage.Shared.Config.Freaks)
 
 local BOB_HEIGHT = 0.35
 local BOB_RATE = 8
@@ -96,11 +98,18 @@ function FreakRenderer.start()
 		table.clear(allParts)
 		table.clear(allCFrames)
 		local now = workspace:GetServerTimeNow()
+		local eye = workspace.CurrentCamera.CFrame.Position
+		local maxSq = FreakConfig.renderDistance * FreakConfig.renderDistance
 		for model, t in tracked do
 			if not model.Parent then
 				continue
 			end
 			local position, moving = Formulas.freakPosition(t.from, t.to, t.start, t.speed, now)
+			-- Far freaks are tiny on screen; leave them where they are.
+			local dx, dz = position.X - eye.X, position.Z - eye.Z
+			if dx * dx + dz * dz > maxSq then
+				continue
+			end
 			local bob = if moving then math.abs(math.sin(now * BOB_RATE + t.phase)) * BOB_HEIGHT else 0
 			local rootCFrame = CFrame.new(position + Vector3.new(0, bob, 0)) * t.facing
 			for i, part in t.parts do

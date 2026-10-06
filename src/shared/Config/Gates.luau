@@ -21,6 +21,20 @@ local Gates: { Gate } = {
 			{ species = "Fizzler", rarity = "Epic" },
 		},
 	},
+	{
+		unlocksTier = 4,
+		requirements = {
+			{ species = "Gloomhound", rarity = "Rare" },
+			{ species = "Wobbler", rarity = "Epic" },
+		},
+	},
+	{
+		unlocksTier = 5,
+		requirements = {
+			{ species = "Gnashling", rarity = "Rare" },
+			{ species = "Bloatworm", rarity = "Epic" },
+		},
+	},
 }
 
 return Gates
