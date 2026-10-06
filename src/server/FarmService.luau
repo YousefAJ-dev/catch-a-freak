@@ -24,7 +24,7 @@ local World = require(Shared.Config.World)
 local Rarities = require(Shared.Config.Rarities)
 local DataService = require(script.Parent.DataService)
 local CarryService = require(script.Parent.CarryService)
-local FreakModels = require(script.Parent.FreakModels)
+local FreakModels = require(Shared.FreakModels)
 
 local INCOME_TICK = 1
 local CHECK_INTERVAL = 0.2
@@ -63,6 +63,11 @@ end
 
 local function setOwnerText(plot: Plot, text: string)
 	(signGui(plot, "OwnerSign"):FindFirstChild("OwnerName") :: TextLabel).Text = text
+end
+
+-- Owner sign for a claimed plot: the player's name and their farm's income.
+local function setOwnerSign(plot: Plot, player: Player, income: number)
+	setOwnerText(plot, ("%s's Lab\n+%s/s"):format(player.DisplayName, Format.money(income)))
 end
 
 local function setValueSign(plot: Plot, pool: number, rate: number)
@@ -117,6 +122,7 @@ local function updatePool(player: Player, plot: Plot)
 	player:SetAttribute("Uncollected", data.uncollected)
 	player:SetAttribute("FarmIncome", income)
 	setValueSign(plot, data.uncollected, income)
+	setOwnerSign(plot, player, income)
 end
 
 local function replicateFarm(player: Player, plot: Plot)
@@ -207,19 +213,15 @@ local function rootOf(player: Player): BasePart?
 	return character:FindFirstChild("HumanoidRootPart") :: BasePart?
 end
 
-local function onPlaceFreak(player: Player, slot: any)
-	local plot = plotOf[player]
+local FARM_FULL = "Farm full — upgrade Farm Capacity at the shop for more incubators"
+
+-- Moves the freak in carry `slot` into the lowest-numbered empty unlocked
+-- incubator. Returns "placed", "full" (no free incubator) or "empty" (no freak
+-- in that slot). The caller has already checked the player is on their plot.
+local function placeSlot(player: Player, plot: Plot, slot: number): ("placed" | "full" | "empty", FarmFreak?)
 	local slots = CarryService.get(player)
-	local root = rootOf(player)
-	if not (plot and slots and root) then
-		return
-	end
-	if not (typeof(slot) == "number" and slot == math.floor(slot) and slot >= 1 and slot <= #slots) then
-		return
-	end
-	if not isOnPlot(plot, root.Position) then
-		notify(player, "Stand on your lab to place freaks")
-		return
+	if not (slots and slots[slot]) then
+		return "empty", nil
 	end
 	local farm = farmOf(player)
 	local pad: number? = nil
@@ -230,19 +232,80 @@ local function onPlaceFreak(player: Player, slot: any)
 		end
 	end
 	if not pad then
-		notify(player, "All unlocked incubators are full")
-		return
+		return "full", nil
 	end
 	local freak = CarryService.take(player, slot)
 	if not freak then
-		return
+		return "empty", nil
 	end
 	local record: FarmFreak = { species = freak.species, tier = freak.tier, rarity = freak.rarity, effects = freak.effects, pad = pad }
 	table.insert(farm, record)
 	showFreak(plot, record)
-	refreshIncubators(plot)
-	replicateFarm(player, plot)
-	notify(player, ("Placed %s %s in incubator %d"):format(record.rarity, record.species, pad))
+	return "placed", record
+end
+
+-- The plot and root of a player standing on their own plot, or nil after
+-- telling them why not.
+local function ownPlotCheck(player: Player, action: string): Plot?
+	local plot = plotOf[player]
+	local root = rootOf(player)
+	if not (plot and root and CarryService.get(player)) then
+		return nil
+	end
+	if not isOnPlot(plot, root.Position) then
+		notify(player, ("Stand on your lab to %s"):format(action))
+		return nil
+	end
+	return plot
+end
+
+local function onPlaceFreak(player: Player, slot: any)
+	local slots = CarryService.get(player)
+	if not (slots and typeof(slot) == "number" and slot == math.floor(slot) and slot >= 1 and slot <= #slots) then
+		return
+	end
+	local plot = ownPlotCheck(player, "place freaks")
+	if not plot then
+		return
+	end
+	local result, record = placeSlot(player, plot, slot)
+	if result == "full" then
+		notify(player, FARM_FULL)
+	elseif result == "placed" and record then
+		refreshIncubators(plot)
+		replicateFarm(player, plot)
+		notify(player, ("Placed %s %s in incubator %d"):format(record.rarity, record.species, record.pad))
+	end
+end
+
+local function onPlaceAll(player: Player)
+	local plot = ownPlotCheck(player, "place freaks")
+	local slots = CarryService.get(player)
+	if not (plot and slots) then
+		return
+	end
+	local placed, left = 0, 0
+	for slot in slots do
+		local result = placeSlot(player, plot, slot)
+		if result == "placed" then
+			placed += 1
+		elseif result == "full" then
+			left += 1
+		end
+	end
+	if placed > 0 then
+		refreshIncubators(plot)
+		replicateFarm(player, plot)
+	end
+	if placed == 0 and left == 0 then
+		notify(player, "You're not carrying any freaks")
+	elseif placed == 0 then
+		notify(player, FARM_FULL)
+	elseif left > 0 then
+		notify(player, ("Placed %d — %s"):format(placed, FARM_FULL))
+	else
+		notify(player, ("Placed %d freak%s"):format(placed, if placed == 1 then "" else "s"))
+	end
 end
 
 local function onPickUpFreak(player: Player, pad: any)
@@ -329,7 +392,6 @@ local function claimPlot(player: Player)
 			plot.owner = player
 			plotOf[player] = plot
 			player:SetAttribute("PlotIndex", plot.index)
-			setOwnerText(plot, ("%s's Lab"):format(player.DisplayName))
 			for _, record in farmOf(player) do
 				showFreak(plot, record)
 			end
@@ -385,6 +447,7 @@ function FarmService.start()
 	end
 
 	Remotes.PlaceFreak.OnServerEvent:Connect(onPlaceFreak)
+	Remotes.PlaceAll.OnServerEvent:Connect(onPlaceAll)
 	Remotes.PickUpFreak.OnServerEvent:Connect(onPickUpFreak)
 	Players.PlayerAdded:Connect(claimPlot)
 	Players.PlayerRemoving:Connect(releasePlot)

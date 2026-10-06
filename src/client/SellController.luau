@@ -1,7 +1,8 @@
 --!strict
--- Sell panel (DESIGN.md section 7, "Selling"): opens while the player stands at
--- the sell counter. Shows each carried freak with its price, plus "Sell all".
--- ShopService on the server checks the counter distance and pays out.
+-- Sell panel (DESIGN.md section 7, "Selling"): the Sell prompt at the sell
+-- counter opens it; the X or walking away closes it. Shows each carried freak
+-- with its price, plus "Sell all". ShopService checks the counter distance
+-- and pays out.
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -14,15 +15,17 @@ local UiKit = require(script.Parent.UiKit)
 
 local player = Players.LocalPlayer
 
+local PROMPT_RANGE = 12
+
 local SellController = {}
 
 function SellController.start()
 	local panel = UiKit.panel("SellPanel", "Sell Counter")
+	local open = false
 
 	local function render()
-		local open = player:GetAttribute("AtSellCounter") == true
-		panel.gui.Enabled = open
-		if not open then
+		panel.gui.Enabled = open and player:GetAttribute("AtSellCounter") == true
+		if not panel.gui.Enabled then
 			return
 		end
 		UiKit.clear(panel.list)
@@ -49,8 +52,28 @@ function SellController.start()
 		end)
 	end
 
-	player:GetAttributeChangedSignal("AtSellCounter"):Connect(render)
+	local function setOpen(value: boolean)
+		open = value
+		render()
+	end
+
+	panel.close.Activated:Connect(function()
+		setOpen(false)
+	end)
+	player:GetAttributeChangedSignal("AtSellCounter"):Connect(function()
+		if player:GetAttribute("AtSellCounter") ~= true then
+			open = false -- walked away
+		end
+		render()
+	end)
 	player:GetAttributeChangedSignal("Carry"):Connect(render)
+
+	task.spawn(function()
+		local counter = workspace:WaitForChild("Map"):WaitForChild("Shop"):WaitForChild("SellCounter") :: BasePart
+		UiKit.localPrompt("SellPrompt", counter.Position + Vector3.new(0, 1, 0), "Sell freaks", "Sell Counter", PROMPT_RANGE, function()
+			setOpen(true)
+		end)
+	end)
 	render()
 end
 

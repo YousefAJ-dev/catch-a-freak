@@ -1,5 +1,6 @@
 --!strict
--- Shop panel (DESIGN.md sections 7 and 11): opens at the shop counter. Tabs for
+-- Shop panel (DESIGN.md sections 7 and 11): the Shop prompt at the shop
+-- counter opens it; the X or walking away closes it. Tabs for
 -- Upgrades, Items and Skins; each row shows the current level or count, what
 -- the next one does, and its price. ShopService decides every purchase.
 
@@ -57,6 +58,7 @@ local ShopController = {}
 
 function ShopController.start()
 	local panel = UiKit.panel("ShopPanel", "Shop")
+	local open = false
 	local tab = "Upgrades"
 
 	local function money(): number
@@ -97,9 +99,8 @@ function ShopController.start()
 	end
 
 	local function render()
-		local open = player:GetAttribute("AtShopCounter") == true
-		panel.gui.Enabled = open
-		if not open then
+		panel.gui.Enabled = open and player:GetAttribute("AtShopCounter") == true
+		if not panel.gui.Enabled then
 			return
 		end
 		UiKit.clear(panel.list)
@@ -118,7 +119,25 @@ function ShopController.start()
 	end)
 	select("Upgrades")
 
-	local watched = { "AtShopCounter", "Money", "HighestTier" }
+	panel.close.Activated:Connect(function()
+		open = false
+		render()
+	end)
+	player:GetAttributeChangedSignal("AtShopCounter"):Connect(function()
+		if player:GetAttribute("AtShopCounter") ~= true then
+			open = false -- walked away
+		end
+		render()
+	end)
+	task.spawn(function()
+		local counter = workspace:WaitForChild("Map"):WaitForChild("Shop"):WaitForChild("UpgradeCounter") :: BasePart
+		UiKit.localPrompt("ShopPrompt", counter.Position + Vector3.new(0, 1, 0), "Browse", "Shop", 12, function()
+			open = true
+			render()
+		end)
+	end)
+
+	local watched = { "Money", "HighestTier" }
 	for _, id in UPGRADE_ORDER do
 		table.insert(watched, "Upgrade_" .. id)
 	end

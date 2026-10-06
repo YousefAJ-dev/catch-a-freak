@@ -1,6 +1,7 @@
 --!strict
--- Builds freak models. Used for wandering freaks (FreakService) and freaks
--- placed in incubators (FarmService).
+-- Builds freak models. Used for wandering freaks (FreakService), freaks placed
+-- in incubators (FarmService), and the carried-freak miniatures that trail
+-- behind players (client TrailController).
 --
 -- Looks are greybox placeholders until Milestone 10: each species has its own
 -- body shape, size, color and eye count. Rarity is not part of the model; the
@@ -9,9 +10,7 @@
 -- and faces -Z, with all other parts placed relative to it, so a model can be
 -- moved by moving its parts with fixed offsets.
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-local FreakConfig = require(ReplicatedStorage.Shared.Config.Freaks)
+local FreakConfig = require(script.Parent.Config.Freaks)
 
 local FreakModels = {}
 

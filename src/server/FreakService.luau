@@ -26,7 +26,7 @@ local Rarities = require(Shared.Config.Rarities)
 local FreakConfig = require(Shared.Config.Freaks)
 local CarryService = require(script.Parent.CarryService)
 local DataService = require(script.Parent.DataService)
-local FreakModels = require(script.Parent.FreakModels)
+local FreakModels = require(Shared.FreakModels)
 local Items = require(Shared.Config.Items)
 
 -- Network delay can make the server see a hold as slightly shorter, or the

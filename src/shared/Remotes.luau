@@ -10,6 +10,7 @@ local EVENTS = {
 	"SellFreak", -- client -> server: (slot: number) sell one carried freak
 	"SellAll", -- client -> server: () sell every carried freak
 	"PlaceFreak", -- client -> server: (slot: number) put a carried freak in the farm
+	"PlaceAll", -- client -> server: () put every carried freak in the farm, as space allows
 	"PickUpFreak", -- client -> server: (pad: number) take a freak out of an incubator
 	"BuyUpgrade", -- client -> server: (upgradeId: string) buy the next level
 	"BuyItem", -- client -> server: (itemId: string) buy one item

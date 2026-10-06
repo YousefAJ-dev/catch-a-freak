@@ -81,6 +81,7 @@ Safe zone = shop + inner ring. Health regenerates at 10 HP/sec there. Roblox's d
 - Base walk speed: 16
 - Carry slots: 9. Each slot holds one freak.
 - Carrying does not slow the player.
+- Carried freaks trail behind the player as miniatures (about 40% size) in carry-slot order, each over a small disc glowing in its rarity color. Everyone sees every player's trail. Placing, selling or dying removes them from the trail.
 
 ### Radiation
 
@@ -197,7 +198,7 @@ The farm is also a showcase. Every freak a player keeps stands in its own glass 
 - Each player is assigned a free plot when they join. The plot shows their name on an owner sign.
 - Plot layout: a lab floor with a center aisle running front to back (front = the side facing the shop), 16 glass incubators in a 4×4 grid split by the aisle, a collection pad on the ground just in front of the plot, and a value sign beside it. Incubators are numbered front row first. Incubators up to the player's capacity look unlocked; the rest look locked. Each capacity level unlocks the next one.
 - Starting capacity: 3 freaks (incubators 1–3 unlocked).
-- To place freaks, stand on your plot and choose which carried freaks to place from the farm panel. Each one goes to the lowest-numbered empty unlocked incubator.
+- To place freaks, use the **Farm** prompt at the front of your own plot's aisle to open the farm panel, then place freaks one at a time or with **Place all**. Each one goes to the lowest-numbered empty unlocked incubator. With every unlocked incubator full, placing is refused with a "Farm full" message. The Farm prompt only exists on your own plot; the panel closes with its X or when you walk off the plot.
 - Placed freaks are visible to everyone.
 
 ### Plot layout
@@ -217,7 +218,7 @@ Inside a plot, measured from the front-left corner (x across the width, y back a
 | Incubators | 11×11 footprint, 16 studs tall inside, 16 total | 4 columns at x 1–12, 14–25, 35–46, 48–59. 4 rows at y 2–13, 17–28, 32–43, 47–58. |
 | Collection pad | 6×6, on the ground | x 27–33, y −8 to −2 |
 | Value sign | 10 wide, on posts | x 16–26, y −5, facing the shop. Shows "VALUE GENERATED": the uncollected pool in dollars, and the farm's income per second below it. |
-| Owner sign | 16 wide, raised above the incubators | Back end of the aisle, facing the shop. Shows the player's name. |
+| Owner sign | 16 wide, raised above the incubators | Back end of the aisle, facing the shop. Shows the player's name and the farm's total income per second. |
 
 - Incubators are numbered 1–16, front row first, left to right.
 - An incubator is a lit floor, four glass walls, metal corner posts, and a glass lid. The plot itself has no outer walls or roof, so the freaks can be seen from outside.
@@ -275,7 +276,7 @@ Items are used with dedicated buttons, not carry slots: Q for Net Launcher, R fo
 
 ### Selling
 
-At the sell counter the player sees their carried freaks and can sell individual ones or "Sell all". Payout is the sum of the sell prices.
+The **Sell** prompt at the sell counter opens the sell panel: the player's carried freaks with each one's price, sold individually or with "Sell all". Payout is the sum of the sell prices. The shop counter works the same way with a **Shop** prompt. Panels close with their X or when the player walks away, and the server refuses any sell, buy or place request made away from the counter or plot.
 
 ---
 

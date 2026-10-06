@@ -56,6 +56,7 @@ export type Panel = {
 	subtitle: TextLabel,
 	list: ScrollingFrame,
 	footer: Frame,
+	close: TextButton, -- the X in the corner; controllers connect what closing means
 }
 
 -- A panel docked on the right edge of the screen, hidden until enabled.
@@ -72,9 +73,22 @@ function UiKit.panel(name: string, title: string): Panel
 	UiKit.corner(frame, 12)
 	UiKit.make("UIStroke", { Color = Color3.fromRGB(70, 80, 95), Thickness = 1.5, Parent = frame })
 
+	local close = UiKit.make("TextButton", {
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -10, 0, 10),
+		Size = UDim2.fromOffset(28, 28),
+		BackgroundColor3 = UiKit.colors.row,
+		Font = Enum.Font.GothamBlack,
+		TextSize = 16,
+		TextColor3 = UiKit.colors.muted,
+		Text = "X",
+		Parent = frame,
+	})
+	UiKit.corner(close, 6)
+
 	local titleLabel = UiKit.make("TextLabel", {
 		Position = UDim2.fromOffset(16, 10),
-		Size = UDim2.new(1, -32, 0, 28),
+		Size = UDim2.new(1, -60, 0, 28),
 		BackgroundTransparency = 1,
 		Font = Enum.Font.GothamBlack,
 		TextSize = 22,
@@ -116,7 +130,34 @@ function UiKit.panel(name: string, title: string): Panel
 	})
 
 	gui.Parent = player:WaitForChild("PlayerGui")
-	return { gui = gui, title = titleLabel, subtitle = subtitle, list = list, footer = footer }
+	return { gui = gui, title = titleLabel, subtitle = subtitle, list = list, footer = footer, close = close }
+end
+
+-- A ProximityPrompt that exists only on this client, on an invisible anchor at
+-- `position`. Local prompts can't appear for other players, and the anchor is
+-- created here (not streamed), so the prompt survives streaming.
+function UiKit.localPrompt(name: string, position: Vector3, actionText: string, objectText: string, range: number, onTriggered: () -> ()): ProximityPrompt
+	local anchor = UiKit.make("Part", {
+		Name = name,
+		Anchored = true,
+		CanCollide = false,
+		CanQuery = false,
+		CanTouch = false,
+		Transparency = 1,
+		Size = Vector3.one,
+		Position = position,
+		Parent = workspace,
+	})
+	local prompt = UiKit.make("ProximityPrompt", {
+		ActionText = actionText,
+		ObjectText = objectText,
+		HoldDuration = 0,
+		MaxActivationDistance = range,
+		RequiresLineOfSight = false,
+		Parent = anchor,
+	})
+	prompt.Triggered:Connect(onTriggered)
+	return prompt
 end
 
 function UiKit.clear(list: Instance)
