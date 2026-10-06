@@ -89,6 +89,7 @@ Safe zone = shop + inner ring. Health regenerates at 10 HP/sec there. Roblox's d
 
 - Health: 100
 - Walk speed: `min(16 + 2.5 × shoesLevel, 55)`. Each Shoes level is a noticeable jump; the cap of 55 is reached around Ring 4. Above that, Roblox characters get hard to steer and the client struggles to stream the map in ahead of the player, so later rings need travel aids rather than more raw speed.
+- **Dash** (F, or an on-screen button on mobile): once Shoes is maxed, the player can buy a Dash that bursts them about 50 studs over 0.4 s in the direction they're moving (or facing). Walls and closed doors still stop it. The cooldown starts at 8 s and each Dash Recharge level takes 1 s off, down to 3 s. At 3 s it adds roughly 16 studs/s on average, about 30% faster trips to the outer rings. The dash runs on the player's own client for instant response; the server enforces the cooldown.
 - Carry slots: 9. Each slot holds one freak.
 - Carrying does not slow the player.
 - Carried freaks trail behind the player as miniatures (about 40% size) in carry-slot order, each over a small disc glowing in its rarity color. Everyone sees every player's trail. Placing, selling or dying removes them from the trail.
@@ -280,8 +281,10 @@ Cost of the next level = `baseCost × growth ^ currentLevel`, rounded to the nea
 | Stronger Grip | Grab hold time ×0.93 | 25 (5 per ring; 50 at 10 rings) | 5 per unlocked tier | 60 | ×1.585 | 379 | 3.79M |
 | Farm Capacity | Unlocks the next incubator | 13 | — | 150 | ×2.8 | 9,220 | 34.8M |
 | Offline Capacity | +1 hour offline limit | 7 | — | 300 | ×4 | 76,800 | 1.2M |
+| Dash | Unlocks the dash (section 4) | 1 | Requires Shoes 16 | 200K (4× the last Shoes level) | — | — | 200K |
+| Dash Recharge | −1 s dash cooldown (8 s → 3 s) | 5 | Requires Dash | 200K | ×1.585 | 1.26M | 1.26M |
 
-Shoes stops at 16 because level 16 reaches the 55 speed cap. Farm Capacity uses ×2.8 so its 13 levels (enough to unlock all 16 incubators) cost about 54M in total.
+Shoes stops at 16 because level 16 reaches the 55 speed cap; past that, the Dash is how players keep getting faster. Farm Capacity uses ×2.8 so its 13 levels (enough to unlock all 16 incubators) cost about 54M in total.
 
 The first levels of each ring cost less than one run's haul there. Buying a ring's full set takes a few dozen runs or a stretch of farm income. This is the main pacing lever.
 
@@ -361,14 +364,14 @@ Rules:
 
 | Screen | Contents |
 |--------|----------|
-| HUD | Money, health bar, radiation warning while in a ring, item buttons with counts, 2x timer when active |
+| HUD | Money, health bar, radiation warning while in a ring, item buttons with counts, dash button with its cooldown (once owned), 2x timer when active |
 | Carry bar | 9 slots along the bottom. Each filled slot shows the species icon with a rarity-colored border. This is a custom UI, not the Roblox backpack. Disable the default backpack. |
 | Grab bar | Fills while holding a grab |
 | Shop | Tabs: Upgrades, Items, Skins. Each row shows current level, effect, and next cost. |
 | Sell panel | Carried freaks with sell price each, "Sell all" |
 | Gate panel | The 2 required freaks, checkmarks for done ones, turn-in buttons |
 | Farm panel | Placed freaks with income each, total income per second, capacity, place and pick-up buttons |
-| Wheel | Wheel, odds table, spin button, time until next free spin |
+| Wheel | Opened by the Spin prompt at the wheel. A strip of prize segments sized by their odds, with a pointer that sweeps and lands on the result while the wheel in the shop spins; the odds table; spin button; time until the next free spin and any extra spins |
 | Popups | Offline earnings on join, revive offer on death, tier unlocked |
 
 ---
@@ -487,6 +490,7 @@ Build in this order. Do not start a milestone until the previous one passes its 
 | 7 | Gates and tiers 2–3 | The gate panel shows Gate 1's requirements. A freak of the right species at the required rarity or higher is accepted, others are refused. Completing Gate 1 opens all 4 Tier 2 doors for that player only; Gate 2 does the same for Tier 3. Rings 2 and 3 hold 80 and 90 freaks of their own tier. The server stays smooth with all 240 freaks and 8 players. |
 | 7.5 | Scaling to 5 rings | Rebuild the map to the section 2 radii: five 150-wide rings, a Tier 2–5 wall each with 4 doors at N/E/S/W, and the outer boundary at 925; the shop and plots are unchanged. Tiers 4 and 5 exist with their species, values, hold times and populations from section 5, and Gates 3 and 4 work like Gates 1 and 2. Radiation is 8/16/32/64/128 HP/s raw, reduced ×0.85 per Hazmat level. Walk speed is 16 + 2.5 per Shoes level, capped at 55. Grip multiplies hold time by 0.93 per level. Gear costs `base × 1.585^level`, and buying above `5 × highestTier` is refused while the shop shows which tier unlocks the next level. Existing saves keep the levels they have. A ring with no player within 60 studs has no freaks; it fills to its population when a player approaches and empties 60 seconds after the last one leaves. Clients only animate freaks within 300 studs. Using /tier and /upgrade to set the section 4 "just unlocked" gear, a player can reach each ring, stay about the table's time, and get back alive. The server stays smooth with players spread across all 5 rings. |
 | 8 | Daily wheel | One free spin per UTC day. Over 10,000 simulated server-side rolls the results are within 1 point of 47/40/10/3. The prize lands in a carry slot. A last-tier player gets Epic and Legendary freaks of their tier in place of the next-tier results. Odds are displayed. |
+| 8.5 | Dash | The Dash shows as locked until Shoes is 16, then costs 4× the last Shoes level. Owning it shows a dash button; F or the button bursts the player about 50 studs forward, stopped by walls and closed doors. The cooldown is 8 s and the server refuses early dashes. Each Dash Recharge level takes 1 s off, down to 3 s. |
 | 9 | Monetization | All four products work in Studio test purchases. The revive is offered when dying with any freak and restores the full carry bar. A receipt replayed twice grants once. The paid spin is hidden when the policy check says restricted. |
 | 10 | Polish | Real freak models, sounds, particles, UI pass, mobile controls check, economy tuning against the section 4 tuning target. |
 

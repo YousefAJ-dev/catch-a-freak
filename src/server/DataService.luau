@@ -8,7 +8,8 @@
 -- use DataService.waitFor where a record is required.
 --
 -- Fields the client needs to display are mirrored onto the Player as
--- attributes ("Money", "HighestTier", "Upgrade_<id>", "Item_<id>", "GateProgress"). The record stays the
+-- attributes ("Money", "HighestTier", "Upgrade_<id>", "Item_<id>", "GateProgress",
+-- "WheelLastFreeDay", "WheelExtraSpins"). The record stays the
 -- source of truth; never read those attributes back on the server as values.
 -- (Connecting to their change signals to learn that something changed is fine.)
 --
@@ -103,6 +104,16 @@ local function replicate(player: Player, data: Data)
 		player:SetAttribute("Item_" .. id, count)
 	end
 	player:SetAttribute("GateProgress", HttpService:JSONEncode(data.gateProgress))
+	player:SetAttribute("WheelLastFreeDay", data.wheel.lastFreeSpinDay)
+	player:SetAttribute("WheelExtraSpins", data.wheel.extraSpins)
+end
+
+-- Re-sends the mirrored attributes after a service changed the record directly.
+function DataService.refresh(player: Player)
+	local data = DataService.get(player)
+	if data then
+		replicate(player, data)
+	end
 end
 
 local function dataOf(player: Player): Data

@@ -276,13 +276,25 @@ function UiKit.row(
 	enabled: boolean,
 	onClick: () -> ()
 )
+	-- The row grows to fit: long text wraps onto extra lines instead of being
+	-- cut off, and 66 px is the minimum height.
 	local row = UiKit.make("Frame", {
 		LayoutOrder = order,
 		Size = UDim2.new(1, -6, 0, 66),
+		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundColor3 = UiKit.colors.row,
 		Parent = list,
 	})
 	UiKit.corner(row, 8)
+	local text = UiKit.make("Frame", {
+		Position = UDim2.fromOffset(12, 0),
+		Size = UDim2.new(1, -112, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundTransparency = 1,
+		Parent = row,
+	})
+	UiKit.make("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 1), Parent = text })
+	UiKit.make("UIPadding", { PaddingTop = UDim.new(0, 6), PaddingBottom = UDim.new(0, 6), Parent = text })
 	for i, line in
 		{
 			{ text = title, font = Enum.Font.GothamBold, size = 16, color = UiKit.colors.text },
@@ -291,16 +303,17 @@ function UiKit.row(
 		}
 	do
 		UiKit.make("TextLabel", {
-			Position = UDim2.fromOffset(12, 6 + (i - 1) * 19),
-			Size = UDim2.new(1, -112, 0, 18),
+			LayoutOrder = i,
+			Size = UDim2.new(1, 0, 0, 18),
+			AutomaticSize = Enum.AutomaticSize.Y,
 			BackgroundTransparency = 1,
 			Font = line.font,
 			TextSize = line.size,
+			TextWrapped = true,
 			TextXAlignment = Enum.TextXAlignment.Left,
-			TextTruncate = Enum.TextTruncate.AtEnd,
 			TextColor3 = line.color,
 			Text = line.text,
-			Parent = row,
+			Parent = text,
 		})
 	end
 	local holder = UiKit.make("Frame", {

@@ -17,6 +17,9 @@ local EVENTS = {
 	"UseNetLauncher", -- client -> server: (target: Vector3) fire a net at a point
 	"PlaceBearTrap", -- client -> server: () set a trap where the player stands
 	"TurnIn", -- client -> server: (requirement: number, source: "carry" | "farm", index: number) gate turn-in
+	"Dash", -- client -> server: () the player dashed (server enforces the cooldown)
+	"SpinWheel", -- client -> server: () spin the daily wheel
+	"WheelResult", -- server -> client: (prizeIndex: number, tier: number, rarity: string, species: string) where the spin landed
 	"NetImpact", -- server -> all clients: (position: Vector3, caught: number) net visual
 	"Popup", -- server -> client: (title: string, body: string) message the player dismisses
 }

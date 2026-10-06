@@ -13,11 +13,12 @@ local Format = require(Shared.Format)
 local Remotes = require(Shared.Remotes)
 local Upgrades = require(Shared.Config.Upgrades)
 local Items = require(Shared.Config.Items)
+local DashConfig = require(Shared.Config.Dash)
 local UiKit = require(script.Parent.UiKit)
 
 local player = Players.LocalPlayer
 
-local UPGRADE_ORDER = { "shoes", "hazmat", "grip", "farmCapacity", "offlineCapacity" }
+local UPGRADE_ORDER = { "shoes", "dash", "dashRecharge", "hazmat", "grip", "farmCapacity", "offlineCapacity" }
 
 -- What each upgrade changes, and its value at a given level. Rows read
 -- "<label> <now> → <next>", e.g. "Radiation −84% → −87%".
@@ -52,6 +53,18 @@ local EFFECT: { [string]: { label: string, value: (level: number) -> string } } 
 			return ("%d h"):format(Formulas.offlineHours(level))
 		end,
 	},
+	dash = {
+		label = ("Burst %d studs forward [%s]"):format(DashConfig.distance, DashConfig.key.Name),
+		value = function(level)
+			return if level > 0 then "owned" else "not owned"
+		end,
+	},
+	dashRecharge = {
+		label = "Dash cooldown",
+		value = function(level)
+			return ("%d s"):format(Formulas.dashCooldown(level))
+		end,
+	},
 }
 
 local ShopController = {}
@@ -74,14 +87,22 @@ function ShopController.start()
 			local capped = not maxed and level >= Formulas.upgradeLevelCap(id, tier)
 			local title = ("%s  ·  Lv %d/%d"):format(upgrade.name, level, upgrade.maxLevel)
 			local effect = EFFECT[id]
-			if maxed then
+			local requires = upgrade.requires
+			local missing = requires and ((player:GetAttribute("Upgrade_" .. requires.upgrade) :: number?) or 0) < requires.level
+			if missing and requires then
+				local needed = Upgrades[requires.upgrade]
+				local what = if needed.maxLevel > 1 then ("%s level %d"):format(needed.name, requires.level) else needed.name
+				UiKit.row(panel.list, i, title, effect.label, ("Requires %s"):format(what), "Locked", UiKit.colors.go, false, function() end)
+			elseif maxed then
 				UiKit.row(panel.list, i, title, ("%s %s"):format(effect.label, effect.value(level)), "Max level", "Max", UiKit.colors.go, false, function() end)
 			elseif capped then
 				local needed = Formulas.tierForUpgradeLevel(id, level + 1)
 				UiKit.row(panel.list, i, title, ("%s %s"):format(effect.label, effect.value(level)), ("Next level unlocks at Tier %d"):format(needed), ("Tier %d"):format(needed), UiKit.colors.go, false, function() end)
 			else
 				local cost = Formulas.upgradeCost(id, level)
-				local change = ("%s %s → %s"):format(effect.label, effect.value(level), effect.value(level + 1))
+				local change = if upgrade.maxLevel == 1
+					then effect.label -- one-time purchase: just say what it does
+					else ("%s %s → %s"):format(effect.label, effect.value(level), effect.value(level + 1))
 				UiKit.row(panel.list, i, title, change, Format.money(cost), "Buy", UiKit.colors.go, money() >= cost, function()
 					Remotes.BuyUpgrade:FireServer(id)
 				end)

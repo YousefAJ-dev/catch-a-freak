@@ -8,6 +8,8 @@
 --   /item <id> <count>        set an item count (netLauncher, bearTrap)
 --   /offline <seconds>        pay out offline earnings as if you'd been away that long
 --   /wipe                     reset your saved data to a new player's and kick you
+--   /wheel reset              make today's free wheel spin available again
+--   /wheel spins <count>      set your extra wheel spins
 -- Results print to the Output window.
 
 local Players = game:GetService("Players")
@@ -17,6 +19,7 @@ local TextChatService = game:GetService("TextChatService")
 local DataService = require(script.Parent.DataService)
 local FreakService = require(script.Parent.FreakService)
 local FarmService = require(script.Parent.FarmService)
+local WheelService = require(script.Parent.WheelService)
 
 type Command = {
 	alias: string,
@@ -52,6 +55,20 @@ local commands: { Command } = {
 			local seconds = tonumber(args[1])
 			assert(seconds, "missing seconds")
 			return ("offline earnings for %d s = %d"):format(seconds, FarmService.applyOfflineEarnings(player, seconds))
+		end,
+	},
+	{
+		alias = "/wheel",
+		usage = "/wheel reset | /wheel spins <count>",
+		run = function(player, args)
+			if args[1] == "reset" then
+				WheelService.resetFreeSpin(player)
+				return "free spin available again"
+			end
+			local count = tonumber(args[2])
+			assert(args[1] == "spins" and count, "expected 'reset' or 'spins <count>'")
+			WheelService.setExtraSpins(player, count)
+			return ("extra spins = %d"):format(count)
 		end,
 	},
 	{

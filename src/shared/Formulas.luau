@@ -10,6 +10,8 @@ local Rarities = require(Config:WaitForChild("Rarities"))
 local Economy = require(Config:WaitForChild("Economy"))
 local Items = require(Config:WaitForChild("Items"))
 local PlayerConfig = require(Config:WaitForChild("Player"))
+local Dash = require(Config:WaitForChild("Dash"))
+local Wheel = require(Config:WaitForChild("Wheel"))
 
 local Formulas = {}
 
@@ -126,6 +128,38 @@ function Formulas.upgradeLevelCap(upgradeId: string, highestTier: number): numbe
 		return math.min(upgrade.maxLevel, upgrade.levelsPerTier * highestTier)
 	end
 	return upgrade.maxLevel
+end
+
+-- What one wheel prize is for a player at `highestTier`: the tier and rarity
+-- of the freak it gives.
+function Formulas.wheelPrize(prizeIndex: number, highestTier: number): (number, string)
+	local prize = Wheel.prizes[prizeIndex]
+	if prize.tierOffset > 0 and highestTier >= #Tiers then
+		return highestTier, prize.lastTierRarity or prize.rarity
+	end
+	return math.min(highestTier + prize.tierOffset, #Tiers), prize.rarity
+end
+
+-- Picks a wheel prize index from a uniform roll in [0, 1).
+function Formulas.rollWheel(roll: number): number
+	local cumulative = 0
+	for i, prize in Wheel.prizes do
+		cumulative += prize.chance
+		if roll < cumulative then
+			return i
+		end
+	end
+	return #Wheel.prizes
+end
+
+-- The UTC day number for a Unix time; free spins reset when it changes.
+function Formulas.utcDay(unixTime: number): number
+	return math.floor(unixTime / 86400)
+end
+
+-- Seconds between dashes at a Dash Recharge level.
+function Formulas.dashCooldown(rechargeLevel: number): number
+	return Dash.baseCooldown - Dash.cooldownPerLevel * rechargeLevel
 end
 
 -- The tier a player needs before they can buy `level` of an upgrade.
