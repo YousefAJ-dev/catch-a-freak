@@ -9,22 +9,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterGui = game:GetService("StarterGui")
 
 local Rarities = require(ReplicatedStorage.Shared.Config.Rarities)
-local FreakConfig = require(ReplicatedStorage.Shared.Config.Freaks)
 local PlayerConfig = require(ReplicatedStorage.Shared.Config.Player)
+local UiKit = require(script.Parent.UiKit)
 
 local player = Players.LocalPlayer
 
 local SLOT = 56
 local GAP = 6
--- Placeholder icons until real art: one glyph per body shape.
-local SHAPE_GLYPH = { Ball = "●", Block = "■", Cylinder = "▬" }
-
-local shapeBySpecies: { [string]: string } = {}
-for _, list in FreakConfig.species do
-	for _, species in list do
-		shapeBySpecies[species.name] = species.shape
-	end
-end
 
 local CarryController = {}
 
@@ -107,7 +98,7 @@ function CarryController.start()
 				ui.stroke.Color = rarity.color
 				ui.stroke.Thickness = 3
 				ui.stroke.Transparency = 0
-				ui.glyph.Text = SHAPE_GLYPH[shapeBySpecies[freak.species]] or "?"
+				ui.glyph.Text = UiKit.glyph(freak.species)
 				ui.glyph.TextColor3 = rarity.color
 				ui.name.Text = freak.species
 			else

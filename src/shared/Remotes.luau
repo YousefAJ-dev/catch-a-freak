@@ -7,6 +7,10 @@ local RunService = game:GetService("RunService")
 
 local EVENTS = {
 	"Notify", -- server -> client: (message: string) short on-screen message
+	"SellFreak", -- client -> server: (slot: number) sell one carried freak
+	"SellAll", -- client -> server: () sell every carried freak
+	"PlaceFreak", -- client -> server: (slot: number) put a carried freak in the farm
+	"PickUpFreak", -- client -> server: (pad: number) take a freak out of an incubator
 }
 
 local folder: Folder

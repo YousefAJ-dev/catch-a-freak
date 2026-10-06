@@ -3,8 +3,8 @@
 --   /tier <1-3>               set your highest unlocked tier
 --   /upgrade <id> <level>     set an upgrade level (shoes, hazmat, grip, farmCapacity, offlineCapacity)
 --   /spawnfreak <tier> <rarity>  spawn a freak in front of you, e.g. /spawnfreak 2 Epic
--- Results print to the Output window. More commands (money) arrive with the
--- systems they control.
+--   /money <amount>           set your money
+-- Results print to the Output window.
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -38,6 +38,16 @@ local commands: { Command } = {
 			assert(id and level, "expected an upgrade id and a level")
 			DataService.setUpgradeLevel(player, id, level)
 			return ("%s = %d"):format(id, player:GetAttribute("Upgrade_" .. id))
+		end,
+	},
+	{
+		alias = "/money",
+		usage = "/money <amount>",
+		run = function(player, args)
+			local amount = tonumber(args[1])
+			assert(amount, "missing amount")
+			DataService.setMoney(player, amount)
+			return ("money = %d"):format(player:GetAttribute("Money"))
 		end,
 	},
 	{

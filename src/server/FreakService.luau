@@ -21,6 +21,7 @@ local Rarities = require(Shared.Config.Rarities)
 local FreakConfig = require(Shared.Config.Freaks)
 local CarryService = require(script.Parent.CarryService)
 local DataService = require(script.Parent.DataService)
+local FreakModels = require(script.Parent.FreakModels)
 
 -- Network delay can make the server see a hold as slightly shorter, or the
 -- player slightly further away, than the client did.
@@ -95,82 +96,6 @@ local function randomPointNear(zone: World.Zone, near: Vector3, radius: number):
 		end
 	end
 	return near
-end
-
-local function makePart(props: { [string]: any }): Part
-	local p = Instance.new("Part")
-	p.Anchored = true
-	p.CanCollide = false
-	p.CanTouch = false
-	p.TopSurface = Enum.SurfaceType.Smooth
-	p.BottomSurface = Enum.SurfaceType.Smooth
-	p.Material = Enum.Material.SmoothPlastic
-	for k, v in props do
-		(p :: any)[k] = v
-	end
-	return p
-end
-
--- Builds a greybox freak around an invisible Root part that sits on the ground
--- and faces -Z. Every other part is placed relative to Root so clients can move
--- the whole model by moving parts with fixed offsets.
-local function buildModel(species: FreakConfig.Species, rarity: Rarities.Rarity): (Model, BasePart)
-	local model = Instance.new("Model")
-	model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
-
-	local root = makePart({ Name = "Root", Size = Vector3.one, Transparency = 1, CanQuery = false, Parent = model })
-	model.PrimaryPart = root
-
-	local isCylinder = species.shape == "Cylinder"
-	local height = if isCylinder then species.size.X else species.size.Y
-	local width = species.size.Z
-	local depth = if isCylinder then species.size.Y else species.size.Z
-	if species.shape == "Ball" then
-		width, depth = species.size.X, species.size.X
-	end
-
-	local body = makePart({
-		Name = "Body",
-		Shape = Enum.PartType[species.shape],
-		Size = species.size,
-		-- A cylinder's axis is X; stand it upright.
-		CFrame = CFrame.new(0, height / 2, 0) * (if isCylinder then CFrame.Angles(0, 0, math.rad(90)) else CFrame.identity),
-		Color = rarity.color,
-		Parent = model,
-	})
-
-	-- Eyes on the front (-Z) face, spread evenly across its width.
-	local eyeSize = math.clamp(math.min(width, height) * 0.28, 0.5, 1.4)
-	for i = 1, species.eyes do
-		local x = (i - (species.eyes + 1) / 2) * eyeSize * 1.3
-		local eyeCf = CFrame.new(x, height * 0.68, -depth / 2 + eyeSize * 0.25)
-		makePart({ Name = "Eye", Shape = Enum.PartType.Ball, Size = Vector3.one * eyeSize, CFrame = eyeCf, Color = Color3.new(1, 1, 1), Parent = model })
-		makePart({
-			Name = "Pupil",
-			Shape = Enum.PartType.Ball,
-			Size = Vector3.one * eyeSize * 0.5,
-			CFrame = eyeCf * CFrame.new(0, 0, -eyeSize * 0.35),
-			Color = Color3.new(0.05, 0.05, 0.05),
-			Parent = model,
-		})
-	end
-
-	if rarity.beam then
-		makePart({
-			Name = "Beam",
-			Shape = Enum.PartType.Cylinder,
-			Size = Vector3.new(FreakConfig.beamHeight, FreakConfig.beamWidth, FreakConfig.beamWidth),
-			CFrame = CFrame.new(0, FreakConfig.beamHeight / 2, 0) * CFrame.Angles(0, 0, math.rad(90)),
-			Color = rarity.color,
-			Material = Enum.Material.Neon,
-			Transparency = 0.35,
-			CastShadow = false,
-			CanQuery = false,
-			Parent = model,
-		})
-	end
-
-	return model, body
 end
 
 local despawn: (freak: Freak, reason: string) -> ()
@@ -248,7 +173,7 @@ end
 local function spawnFreak(species: FreakConfig.Species, rarity: Rarities.Rarity, homeZone: World.Zone, position: Vector3, counted: boolean): Freak
 	nextId += 1
 	local id = tostring(nextId)
-	local model, body = buildModel(species, rarity)
+	local model, body = FreakModels.build(species, rarity, rarity.beam)
 	model.Name = ("%s_%s_%s"):format(rarity.id, species.name, id)
 	model:SetAttribute("FreakId", id)
 	model:SetAttribute("Species", species.name)

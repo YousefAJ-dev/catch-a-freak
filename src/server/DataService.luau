@@ -3,8 +3,9 @@
 -- In memory only for now; loading and saving arrive in Milestone 6.
 --
 -- Fields the client needs to display are mirrored onto the Player as
--- attributes ("HighestTier", "Upgrade_<id>"). The record stays the source of
--- truth; never read those attributes back on the server.
+-- attributes ("Money", "HighestTier", "Upgrade_<id>"). The record stays the
+-- source of truth; never read those attributes back on the server as values.
+-- (Connecting to their change signals to learn that something changed is fine.)
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -59,10 +60,25 @@ function DataService.get(player: Player): Data?
 end
 
 local function replicate(player: Player, data: Data)
+	player:SetAttribute("Money", data.money)
 	player:SetAttribute("HighestTier", data.highestTier)
 	for id, level in data.upgrades do
 		player:SetAttribute("Upgrade_" .. id, level)
 	end
+end
+
+function DataService.addMoney(player: Player, amount: number)
+	local data = records[player]
+	assert(data, "no data for player")
+	data.money = math.max(0, data.money + amount)
+	replicate(player, data)
+end
+
+function DataService.setMoney(player: Player, amount: number)
+	local data = records[player]
+	assert(data, "no data for player")
+	data.money = math.max(0, math.floor(amount))
+	replicate(player, data)
 end
 
 function DataService.setHighestTier(player: Player, tier: number)

@@ -57,6 +57,18 @@ function CarryService.add(player: Player, freak: CarriedFreak): number?
 	return index
 end
 
+-- Removes and returns the freak in a slot, or nil if the slot is empty.
+function CarryService.take(player: Player, index: number): CarriedFreak?
+	local slots = slotsByPlayer[player]
+	local freak = slots and slots[index]
+	if not (slots and freak) then
+		return nil
+	end
+	slots[index] = false
+	replicate(player)
+	return freak
+end
+
 function CarryService.clear(player: Player)
 	if slotsByPlayer[player] then
 		slotsByPlayer[player] = emptySlots()

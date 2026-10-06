@@ -257,42 +257,13 @@ end
 -- off past this distance; it's far enough to read them from the shop.
 local SIGN_RANGE = 160
 
--- Lab palette shared by the plot pieces.
-local LAB = {
-	floor = Color3.fromRGB(222, 226, 230),
-	aisle = Color3.fromRGB(150, 156, 162),
-	metal = Color3.fromRGB(190, 195, 202),
-	glass = Color3.fromRGB(200, 235, 255),
-	light = Color3.fromRGB(120, 230, 255), -- becomes the freak's rarity color later
-	lockedFloor = Color3.fromRGB(55, 55, 60),
-	lockedMetal = Color3.fromRGB(80, 80, 86),
-	lockedGlass = Color3.fromRGB(70, 70, 76),
-	signBoard = Color3.fromRGB(35, 40, 48),
-	signText = Color3.fromRGB(210, 245, 255),
-}
-
--- Unlocked incubators are clear and lit; locked ones are smoky grey and dark.
--- FarmService will restyle incubators at runtime as a player's capacity grows.
-local function styleIncubator(incubator: Model, unlocked: boolean)
-	incubator:SetAttribute("Unlocked", unlocked)
-	for _, p in incubator:GetChildren() do
-		if not p:IsA("BasePart") then
-			continue
-		end
-		if p.Name == "Floor" then
-			p.Color = unlocked and LAB.metal or LAB.lockedFloor
-			p.Material = unlocked and Enum.Material.DiamondPlate or Enum.Material.Slate
-		elseif p.Name == "Light" then
-			p.Color = unlocked and LAB.light or LAB.lockedFloor
-			p.Material = unlocked and Enum.Material.Neon or Enum.Material.SmoothPlastic
-		elseif p.Name == "Glass" or p.Name == "Lid" then
-			p.Color = unlocked and LAB.glass or LAB.lockedGlass
-			p.Transparency = unlocked and 0.75 or 0.45
-		elseif p.Name == "Post" then
-			p.Color = unlocked and LAB.metal or LAB.lockedMetal
-		end
-	end
-end
+-- Lab palette and incubator styling are shared with FarmService, which
+-- restyles incubators at runtime. Cloned for the same reason as World above.
+local farmVisualsModule = game:GetService("ReplicatedStorage").Shared.FarmVisuals:Clone()
+local FarmVisuals = require(farmVisualsModule) :: any
+farmVisualsModule:Destroy()
+local LAB = FarmVisuals.palette
+local styleIncubator = FarmVisuals.styleIncubator
 
 -- A square glass incubator whose floor sits on `floorCf` (the plot's top surface).
 local function buildIncubator(name: string, floorCf: CFrame, size: number, height: number): Model
@@ -481,7 +452,7 @@ local function buildPlots(map: Instance)
 
 		-- Owner sign over the back end of the aisle, raised above the incubators.
 		local ownerGui = signBoard(plot, "OwnerSign", cf * CFrame.new(0, top, half - 1), 16, 4, cfg.incubatorHeight + 4)
-		signText(ownerGui, "OwnerName", ("Plot %d — Unclaimed"):format(i), 0.1, 0.8, Enum.Font.GothamBold, LAB.signText)
+		signText(ownerGui, "OwnerName", FarmVisuals.unclaimedText(i), 0.1, 0.8, Enum.Font.GothamBold, LAB.signText)
 	end
 end
 

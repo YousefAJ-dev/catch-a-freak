@@ -1,6 +1,6 @@
 --!strict
--- HUD: health bar, and a radiation warning while in a ring. Display only; the
--- server owns health and damage (RadiationService).
+-- HUD: money, health bar, and a radiation warning while in a ring. Display
+-- only; the server owns money (DataService) and health (RadiationService).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -8,6 +8,7 @@ local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
 
 local Formulas = require(ReplicatedStorage.Shared.Formulas)
+local Format = require(ReplicatedStorage.Shared.Format)
 
 local player = Players.LocalPlayer
 
@@ -96,14 +97,35 @@ local function buildGui()
 		Parent = warning,
 	})
 
-	return fill, text, warning, stroke
+	-- Money: top left, below the Roblox top bar.
+	local money = make("TextLabel", {
+		Name = "Money",
+		Position = UDim2.fromOffset(16, 12),
+		Size = UDim2.fromOffset(200, 40),
+		BackgroundColor3 = Color3.fromRGB(25, 28, 34),
+		BackgroundTransparency = 0.2,
+		Font = Enum.Font.GothamBlack,
+		TextSize = 24,
+		TextColor3 = Color3.fromRGB(120, 255, 140),
+		Text = "$0",
+		Parent = gui,
+	})
+	corner(money, 10)
+
+	return fill, text, warning, stroke, money
 end
 
 function HudController.start()
 	-- The custom bar replaces Roblox's default health display.
 	pcall(StarterGui.SetCoreGuiEnabled, StarterGui, Enum.CoreGuiType.Health, false)
 
-	local fill, text, warning, stroke = buildGui()
+	local fill, text, warning, stroke, money = buildGui()
+
+	local function updateMoney()
+		money.Text = Format.money((player:GetAttribute("Money") :: number?) or 0)
+	end
+	player:GetAttributeChangedSignal("Money"):Connect(updateMoney)
+	updateMoney()
 
 	local function updateWarning()
 		local tier = (player:GetAttribute("ZoneTier") :: number?) or 0

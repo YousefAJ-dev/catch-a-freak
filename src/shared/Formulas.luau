@@ -7,6 +7,7 @@ local World = require(Config:WaitForChild("World"))
 local Tiers = require(Config:WaitForChild("Tiers"))
 local Upgrades = require(Config:WaitForChild("Upgrades"))
 local Rarities = require(Config:WaitForChild("Rarities"))
+local Economy = require(Config:WaitForChild("Economy"))
 
 local Formulas = {}
 
@@ -59,6 +60,31 @@ function Formulas.freakPosition(from: Vector3, to: Vector3, startTime: number, s
 		return to, false
 	end
 	return from:Lerp(to, math.max(alpha, 0)), true
+end
+
+-- Income multiplier from a freak's status effects (DESIGN.md section 14).
+-- Effects don't exist yet, so this is 1 for every freak; the hook is here so
+-- adding them later needs no data migration.
+function Formulas.effectsMultiplier(effects: { any }?): number
+	local multiplier = 1
+	for _, effect in effects or {} do
+		multiplier *= effect.multiplier or 1
+	end
+	return multiplier
+end
+
+function Formulas.incomePerSecond(tier: number, rarityId: string, effects: { any }?): number
+	return Tiers[tier].baseIncome * Rarities.byId[rarityId].incomeMultiplier * Formulas.effectsMultiplier(effects)
+end
+
+function Formulas.sellPrice(tier: number, rarityId: string, effects: { any }?): number
+	return Economy.sellIncomeSeconds * Formulas.incomePerSecond(tier, rarityId, effects)
+end
+
+-- How many incubators a player has unlocked at a Farm Capacity level.
+function Formulas.farmCapacity(level: number): number
+	local total = World.farm.padRows * World.farm.padColumns
+	return math.min(total, World.farm.startingUnlockedPads + level * Upgrades.farmCapacity.effectPerLevel)
 end
 
 -- Cost of buying the next level of an upgrade, rounded to the nearest dollar.
