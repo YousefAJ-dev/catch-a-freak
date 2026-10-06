@@ -3,7 +3,7 @@
 -- In memory only for now; loading and saving arrive in Milestone 6.
 --
 -- Fields the client needs to display are mirrored onto the Player as
--- attributes ("Money", "HighestTier", "Upgrade_<id>"). The record stays the
+-- attributes ("Money", "HighestTier", "Upgrade_<id>", "Item_<id>"). The record stays the
 -- source of truth; never read those attributes back on the server as values.
 -- (Connecting to their change signals to learn that something changed is fine.)
 
@@ -65,12 +65,35 @@ local function replicate(player: Player, data: Data)
 	for id, level in data.upgrades do
 		player:SetAttribute("Upgrade_" .. id, level)
 	end
+	for id, count in data.items do
+		player:SetAttribute("Item_" .. id, count)
+	end
 end
 
 function DataService.addMoney(player: Player, amount: number)
 	local data = records[player]
 	assert(data, "no data for player")
 	data.money = math.max(0, data.money + amount)
+	replicate(player, data)
+end
+
+-- Takes `amount` from the player's money if they have enough. Returns whether
+-- it did; check and deduct happen together so nothing can slip in between.
+function DataService.trySpend(player: Player, amount: number): boolean
+	local data = records[player]
+	if not data or amount < 0 or data.money < amount then
+		return false
+	end
+	data.money -= amount
+	replicate(player, data)
+	return true
+end
+
+function DataService.setItemCount(player: Player, itemId: string, count: number)
+	local data = records[player]
+	assert(data, "no data for player")
+	assert(data.items[itemId] ~= nil, "unknown item " .. itemId)
+	data.items[itemId] = math.max(0, math.floor(count))
 	replicate(player, data)
 end
 

@@ -12,6 +12,7 @@ local RunService = game:GetService("RunService")
 local Formulas = require(ReplicatedStorage.Shared.Formulas)
 local Rarities = require(ReplicatedStorage.Shared.Config.Rarities)
 local FreakConfig = require(ReplicatedStorage.Shared.Config.Freaks)
+local Items = require(ReplicatedStorage.Shared.Config.Items)
 
 local player = Players.LocalPlayer
 
@@ -35,15 +36,33 @@ local function applyPromptSettings(prompt: ProximityPrompt)
 		return
 	end
 	local grip = (player:GetAttribute("Upgrade_grip") :: number?) or 0
+	local pinnedBy = model:GetAttribute("PinnedBy") :: number?
 	prompt.MaxActivationDistance = FreakConfig.grabRange
-	prompt.HoldDuration = Formulas.holdTime(model:GetAttribute("Tier") :: number, model:GetAttribute("Rarity") :: string, grip)
+	-- A freak pinned by a bear trap is a quick grab for the trap's owner and
+	-- off limits to everyone else (the server enforces both).
+	prompt.Enabled = pinnedBy == nil or pinnedBy == player.UserId
+	prompt.HoldDuration = if pinnedBy == player.UserId
+		then Items.bearTrap.pinnedHold
+		else Formulas.holdTime(model:GetAttribute("Tier") :: number, model:GetAttribute("Rarity") :: string, grip)
 end
+
+local watched: { [Instance]: true } = {}
 
 local function applyToFreak(model: Instance)
 	local body = model:FindFirstChild("Body")
 	local prompt = body and body:FindFirstChildOfClass("ProximityPrompt")
-	if prompt then
-		applyPromptSettings(prompt)
+	if not prompt then
+		return
+	end
+	applyPromptSettings(prompt)
+	if not watched[model] then
+		watched[model] = true
+		model:GetAttributeChangedSignal("PinnedBy"):Connect(function()
+			applyPromptSettings(prompt)
+		end)
+		model.Destroying:Connect(function()
+			watched[model] = nil
+		end)
 	end
 end
 

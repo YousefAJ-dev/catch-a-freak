@@ -8,6 +8,8 @@ local Tiers = require(Config:WaitForChild("Tiers"))
 local Upgrades = require(Config:WaitForChild("Upgrades"))
 local Rarities = require(Config:WaitForChild("Rarities"))
 local Economy = require(Config:WaitForChild("Economy"))
+local Items = require(Config:WaitForChild("Items"))
+local PlayerConfig = require(Config:WaitForChild("Player"))
 
 local Formulas = {}
 
@@ -27,7 +29,7 @@ end
 -- Radiation damage per second in a tier's ring. Each Hazmat level adds to a
 -- divisor, so early levels cut damage sharply and later ones taper off.
 function Formulas.radiationDps(tier: number, hazmatLevel: number): number
-	return Tiers[tier].radiationDps / (1 + Upgrades.hazmat.effectPerLevel * hazmatLevel)
+	return Tiers[tier].radiationDps * Formulas.hazmatMultiplier(hazmatLevel)
 end
 
 -- Picks a rarity id from a uniform roll in [0, 1) using the spawn chances.
@@ -85,6 +87,25 @@ end
 function Formulas.farmCapacity(level: number): number
 	local total = World.farm.padRows * World.farm.padColumns
 	return math.min(total, World.farm.startingUnlockedPads + level * Upgrades.farmCapacity.effectPerLevel)
+end
+
+function Formulas.walkSpeed(shoesLevel: number): number
+	return PlayerConfig.baseWalkSpeed + Upgrades.shoes.effectPerLevel * shoesLevel
+end
+
+-- Multiplier on radiation damage from the Hazmat Suit (1 at level 0).
+function Formulas.hazmatMultiplier(hazmatLevel: number): number
+	return 1 / (1 + Upgrades.hazmat.effectPerLevel * hazmatLevel)
+end
+
+-- Hours of farm income that can pile up while the player is offline.
+function Formulas.offlineHours(offlineLevel: number): number
+	return 1 + Upgrades.offlineCapacity.effectPerLevel * offlineLevel
+end
+
+-- Price of one item, scaled by the player's highest unlocked tier.
+function Formulas.itemPrice(itemId: string, highestTier: number): number
+	return (Items :: any)[itemId].basePrice * 10 ^ (highestTier - 1)
 end
 
 -- Cost of buying the next level of an upgrade, rounded to the nearest dollar.

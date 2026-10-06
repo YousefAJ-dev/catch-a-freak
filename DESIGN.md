@@ -149,7 +149,7 @@ Income per second by tier and rarity:
 
 ### Species
 
-Names are placeholders. Rename freely. Species within a tier have identical stats. They differ in look and in which gate asks for them.
+Names are placeholders. Rename freely. Species within a tier have identical stats. They differ in look (each species has its own body shape and color) and in which gate asks for them.
 
 | Tier | Species A | Species B | Species C |
 |------|-----------|-----------|-----------|
@@ -162,8 +162,8 @@ Names are placeholders. Rename freely. Species within a tier have identical stat
 - Each ring keeps its population constant. When a freak is caught or expires, a new one spawns 3 seconds later at a random point in the ring, at least 10 studs from any wall.
 - Each spawn picks a species at random (equal odds) and rolls rarity from the table above.
 - **Lifetime:** every freak expires 120–240 seconds after spawning (random per freak) and is replaced by a fresh roll. Without this, players take the rare ones and leave the Commons, nothing respawns, and the ring fills up with Commons. A freak that is being grabbed or is pinned by a trap does not expire.
-- Rarity must be readable at a glance: the freak is tinted or outlined in its rarity color.
-- Epic and Legendary freaks also emit a tall vertical light beam in their rarity color, visible from across the ring.
+- Rarity is shown by an outline in the rarity color, on every rarity including Common. Only the nearest 6 freaks to the player are outlined at a time (Roblox renders at most ~31 outlines at once, and this keeps the view uncluttered), so a rare is something you spot up close rather than from across the ring. The body stays in its species color.
+- Freaks placed in incubators show rarity through the incubator's floor light instead of an outline.
 - Freaks are shared by everyone on the server. The first player to finish a grab gets it.
 
 ### Behavior
@@ -451,7 +451,7 @@ Build in this order. Do not start a milestone until the previous one passes its 
 |---|-----------|-----------|
 | 1 | Greybox map and farm plots | If an earlier greybox exists at different dimensions, rebuild it to these. The shop, safe-zone barrier, both tier walls, and outer boundary exist at the section 2 radii. Each wall has 4 doors at N/E/S/W. All 8 farm plots exist at the section 6 positions and size (60×60). Each plot has a lab floor, a center aisle, 16 glass incubators in a 4×4 grid numbered front row first, a collection pad in front, a value sign, and an owner sign. Incubators 1–3 look unlocked and 4–16 look locked (greyed out). A player can walk from spawn straight down each N/E/S/W lane, through the barrier door, into Ring 1 without crossing a plot. The Tier 2 and Tier 3 doors block the player. No wall can be jumped or climbed. A top-down screenshot shows no plots overlapping each other, the shop, or the barrier. |
 | 2 | Zones and radiation | Zone is detected from distance to center. Health drains at 8/sec in Ring 1 and regenerates in the safe zone. Dying respawns the player at the shop. HUD shows health and a radiation warning. The debug command to set highest tier works: with tier 3 set, the player can pass both walls and takes 16/sec in Ring 2 and 32/sec in Ring 3, divided by (1 + 1.7 × Hazmat level). A player found in a ring above their tier is sent back to the shop. |
-| 3 | Freaks and grabbing | Ring 1 holds 70 wandering freaks. Over 1,000 simulated spawns the rarity split is within 2 points of 50/30/14/5/1. Rarity colors and Epic/Legendary beams show. Freaks expire and are replaced. Holding the prompt fills the grab bar; hold times match the section 5 table. Caught freaks fill the carry bar up to 9, and the 10th grab is refused. Dying clears the carry bar. The server stays smooth with all 70 moving. |
+| 3 | Freaks and grabbing | Ring 1 holds 70 wandering freaks. Over 1,000 simulated spawns the rarity split is within 2 points of 50/30/14/5/1. The nearest 6 freaks are outlined in their rarity colors. Freaks expire and are replaced. Holding the prompt fills the grab bar; hold times match the section 5 table. Caught freaks fill the carry bar up to 9, and the 10th grab is refused. Dying clears the carry bar. The server stays smooth with all 70 moving. |
 | 4 | Money loop | Money shows on the HUD. The sell panel sells one freak or all, at 30× income. Placing a freak puts it in the lowest-numbered empty unlocked incubator, scaled to fit, with the incubator's floor light in its rarity color. Placing is refused when all unlocked incubators are full. The pool grows every second by the right amount, the value sign shows the pool and income per second, the owner sign shows the player's name, and standing on the collection pad collects it. Picking a freak back up empties its incubator. |
 | 5 | Shop | All 5 upgrades can be bought, cost `base × growth^level`, stop at max level, and change what they say they change. Each Farm Capacity level unlocks the next incubator, stopping at incubator 16. Net Launcher catches up to 3 Common/Uncommon/Rare freaks and ignores Epic/Legendary. Bear Trap pins one freak and makes it a 0.5-second grab for its owner. |
 | 6 | Saving | Leaving and rejoining restores money, upgrades, items, farm, uncollected pool, and highest tier. Carried freaks are gone. Offline earnings are added, capped, and shown in a popup. |

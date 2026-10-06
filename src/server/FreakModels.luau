@@ -2,8 +2,9 @@
 -- Builds freak models. Used for wandering freaks (FreakService) and freaks
 -- placed in incubators (FarmService).
 --
--- Looks are greybox placeholders until Milestone 10: species differ by body
--- shape, size and eye count; the body is tinted in the rarity color.
+-- Looks are greybox placeholders until Milestone 10: each species has its own
+-- body shape, size, color and eye count. Rarity is not part of the model; the
+-- client outlines nearby freaks in their rarity color (OutlineController).
 -- Every model is built around an invisible Root part that sits on the ground
 -- and faces -Z, with all other parts placed relative to it, so a model can be
 -- moved by moving its parts with fixed offsets.
@@ -11,7 +12,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local FreakConfig = require(ReplicatedStorage.Shared.Config.Freaks)
-local Rarities = require(ReplicatedStorage.Shared.Config.Rarities)
 
 local FreakModels = {}
 
@@ -43,7 +43,7 @@ local function makePart(props: { [string]: any }): Part
 end
 
 -- Returns the model (pivot at origin) and its Body part.
-function FreakModels.build(species: FreakConfig.Species, rarity: Rarities.Rarity, withBeam: boolean): (Model, BasePart)
+function FreakModels.build(species: FreakConfig.Species): (Model, BasePart)
 	local model = Instance.new("Model")
 	model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
 
@@ -64,7 +64,7 @@ function FreakModels.build(species: FreakConfig.Species, rarity: Rarities.Rarity
 		Size = species.size,
 		-- A cylinder's axis is X; stand it upright.
 		CFrame = CFrame.new(0, height / 2, 0) * (if isCylinder then CFrame.Angles(0, 0, math.rad(90)) else CFrame.identity),
-		Color = rarity.color,
+		Color = species.color,
 		Parent = model,
 	})
 
@@ -80,21 +80,6 @@ function FreakModels.build(species: FreakConfig.Species, rarity: Rarities.Rarity
 			Size = Vector3.one * eyeSize * 0.5,
 			CFrame = eyeCf * CFrame.new(0, 0, -eyeSize * 0.35),
 			Color = Color3.new(0.05, 0.05, 0.05),
-			Parent = model,
-		})
-	end
-
-	if withBeam then
-		makePart({
-			Name = "Beam",
-			Shape = Enum.PartType.Cylinder,
-			Size = Vector3.new(FreakConfig.beamHeight, FreakConfig.beamWidth, FreakConfig.beamWidth),
-			CFrame = CFrame.new(0, FreakConfig.beamHeight / 2, 0) * CFrame.Angles(0, 0, math.rad(90)),
-			Color = rarity.color,
-			Material = Enum.Material.Neon,
-			Transparency = 0.35,
-			CastShadow = false,
-			CanQuery = false,
 			Parent = model,
 		})
 	end

@@ -11,6 +11,11 @@ local EVENTS = {
 	"SellAll", -- client -> server: () sell every carried freak
 	"PlaceFreak", -- client -> server: (slot: number) put a carried freak in the farm
 	"PickUpFreak", -- client -> server: (pad: number) take a freak out of an incubator
+	"BuyUpgrade", -- client -> server: (upgradeId: string) buy the next level
+	"BuyItem", -- client -> server: (itemId: string) buy one item
+	"UseNetLauncher", -- client -> server: (target: Vector3) fire a net at a point
+	"PlaceBearTrap", -- client -> server: () set a trap where the player stands
+	"NetImpact", -- server -> all clients: (position: Vector3, caught: number) net visual
 }
 
 local folder: Folder

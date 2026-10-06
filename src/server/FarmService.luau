@@ -131,7 +131,7 @@ local function showFreak(plot: Plot, record: FarmFreak)
 	local incubator = (plot.model:FindFirstChild("Pads") :: Folder):FindFirstChild("Pad" .. record.pad) :: Model
 	local floor = incubator:FindFirstChild("Floor") :: BasePart
 	local rarity = Rarities.byId[record.rarity]
-	local model, body = FreakModels.build(FreakModels.species(record.species), rarity, false)
+	local model, body = FreakModels.build(FreakModels.species(record.species))
 	model.Name = "Placed" .. record.pad
 
 	local size = model:GetExtentsSize()

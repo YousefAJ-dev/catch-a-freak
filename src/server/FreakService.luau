@@ -8,6 +8,11 @@
 --
 -- Grabbing uses the freak's ProximityPrompt. Its hold events reach the server
 -- directly, so the server times the hold itself and trusts nothing from the client.
+--
+-- Items (ItemService) use query/capture/pin. A pinned freak stands still,
+-- never expires, and can only be grabbed by the trap's owner, in
+-- Items.bearTrap.pinnedHold seconds. Pins are published as model attributes
+-- "PinnedBy" (owner UserId) and "PinnedUntil" (server time).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -22,6 +27,7 @@ local FreakConfig = require(Shared.Config.Freaks)
 local CarryService = require(script.Parent.CarryService)
 local DataService = require(script.Parent.DataService)
 local FreakModels = require(script.Parent.FreakModels)
+local Items = require(Shared.Config.Items)
 
 -- Network delay can make the server see a hold as slightly shorter, or the
 -- player slightly further away, than the client did.
@@ -41,6 +47,18 @@ type Freak = {
 	expiresAt: number,
 	holdStarts: { [Player]: number }, -- when each player began holding
 	holding: { [Player]: true }, -- players holding right now
+	waypointSeq: number, -- bumped on every new waypoint so stale timers do nothing
+	pinnedBy: Player?, -- set while pinned by a bear trap
+}
+
+-- What ItemService sees of a freak.
+export type FreakInfo = {
+	id: string,
+	tier: number,
+	rarity: string,
+	species: string,
+	position: Vector3,
+	pinnedBy: Player?,
 }
 
 local FreakService = {}
@@ -105,6 +123,8 @@ local despawn: (freak: Freak, reason: string) -> ()
 local function setWaypoint(freak: Freak, to: Vector3)
 	local from = currentPosition(freak)
 	freak.from, freak.to, freak.startTime = from, to, now()
+	freak.waypointSeq += 1
+	local seq = freak.waypointSeq
 
 	local model = freak.model
 	model:SetAttribute("WpFrom", from)
@@ -117,7 +137,7 @@ local function setWaypoint(freak: Freak, to: Vector3)
 	local speed = Tiers[freak.species.tier].freakSpeed
 	local travel = (to - from).Magnitude / speed
 	task.delay(travel + rng:NextNumber(FreakConfig.waitMin, FreakConfig.waitMax), function()
-		if freaks[freak.id] == freak then
+		if freaks[freak.id] == freak and freak.waypointSeq == seq and not freak.pinnedBy then
 			setWaypoint(freak, randomPointNear(freak.homeZone, freak.to, FreakConfig.wanderRadius))
 		end
 	end)
@@ -152,7 +172,13 @@ local function tryGrab(player: Player, freak: Freak)
 	if Formulas.zoneFromPosition(root.Position).name ~= Formulas.zoneFromPosition(freakPosition).name then
 		return
 	end
-	local required = Formulas.holdTime(freak.species.tier, freak.rarity.id, data.upgrades.grip)
+	if freak.pinnedBy and freak.pinnedBy ~= player then
+		notify(player, "That freak is pinned by someone else's trap")
+		return
+	end
+	local required = if freak.pinnedBy == player
+		then Items.bearTrap.pinnedHold
+		else Formulas.holdTime(freak.species.tier, freak.rarity.id, data.upgrades.grip)
 	if os.clock() - holdStart < required - HOLD_TOLERANCE then
 		return
 	end
@@ -173,7 +199,7 @@ end
 local function spawnFreak(species: FreakConfig.Species, rarity: Rarities.Rarity, homeZone: World.Zone, position: Vector3, counted: boolean): Freak
 	nextId += 1
 	local id = tostring(nextId)
-	local model, body = FreakModels.build(species, rarity, rarity.beam)
+	local model, body = FreakModels.build(species)
 	model.Name = ("%s_%s_%s"):format(rarity.id, species.name, id)
 	model:SetAttribute("FreakId", id)
 	model:SetAttribute("Species", species.name)
@@ -210,6 +236,8 @@ local function spawnFreak(species: FreakConfig.Species, rarity: Rarities.Rarity,
 		expiresAt = now() + rng:NextNumber(FreakConfig.lifetimeMin, FreakConfig.lifetimeMax),
 		holdStarts = {},
 		holding = {},
+		waypointSeq = 0,
+		pinnedBy = nil,
 	}
 
 	prompt.PromptButtonHoldBegan:Connect(function(player)
@@ -281,6 +309,72 @@ function FreakService.spawnNear(player: Player, tier: number, rarityId: string):
 	return freak.model.Name
 end
 
+-- Every freak within `radius` studs (horizontally) of `center`, nearest first.
+function FreakService.query(center: Vector3, radius: number): { FreakInfo }
+	local found = {}
+	for _, freak in freaks do
+		local position = currentPosition(freak)
+		local offset = position - center
+		if Vector3.new(offset.X, 0, offset.Z).Magnitude <= radius then
+			table.insert(found, {
+				id = freak.id,
+				tier = freak.species.tier,
+				rarity = freak.rarity.id,
+				species = freak.species.name,
+				position = position,
+				pinnedBy = freak.pinnedBy,
+			})
+		end
+	end
+	table.sort(found, function(a, b)
+		return (a.position - center).Magnitude < (b.position - center).Magnitude
+	end)
+	return found
+end
+
+-- Moves a freak straight into the player's carry bar (no hold), if it still
+-- exists and they have a free slot. Callers do their own eligibility checks.
+function FreakService.capture(player: Player, id: string): boolean
+	local freak = freaks[id]
+	if not freak or not CarryService.hasFreeSlot(player) then
+		return false
+	end
+	CarryService.add(player, {
+		species = freak.species.name,
+		tier = freak.species.tier,
+		rarity = freak.rarity.id,
+		effects = {},
+	})
+	despawn(freak, "caught")
+	return true
+end
+
+-- Stops a freak where it is for `duration` seconds; only `owner` can grab it
+-- meanwhile. Returns false if the freak is gone or already pinned.
+function FreakService.pin(id: string, owner: Player, duration: number): boolean
+	local freak = freaks[id]
+	if not freak or freak.pinnedBy then
+		return false
+	end
+	setWaypoint(freak, currentPosition(freak)) -- stand still
+	freak.pinnedBy = owner
+	freak.model:SetAttribute("PinnedBy", owner.UserId)
+	freak.model:SetAttribute("PinnedUntil", now() + duration)
+	task.delay(duration, function()
+		if freaks[id] == freak and freak.pinnedBy == owner then
+			freak.pinnedBy = nil
+			freak.model:SetAttribute("PinnedBy", nil)
+			freak.model:SetAttribute("PinnedUntil", nil)
+			setWaypoint(freak, randomPointNear(freak.homeZone, freak.to, FreakConfig.wanderRadius))
+		end
+	end)
+	return true
+end
+
+function FreakService.exists(id: string): boolean
+	return freaks[id] ~= nil
+end
+
 function FreakService.getPopulation(tier: number): number
 	return population[tier] or 0
 end
@@ -309,7 +403,7 @@ function FreakService.start()
 			task.wait(1)
 			local t = now()
 			for _, freak in freaks do
-				if t >= freak.expiresAt and next(freak.holding) == nil then
+				if t >= freak.expiresAt and next(freak.holding) == nil and not freak.pinnedBy then
 					despawn(freak, "expired")
 				end
 			end

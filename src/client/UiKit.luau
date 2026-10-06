@@ -223,6 +223,92 @@ function UiKit.freakRow(
 	UiKit.button(holder, buttonText, buttonColor, enabled, onClick)
 end
 
+-- A plain row: a title, two lines of detail, and a button.
+function UiKit.row(
+	list: Instance,
+	order: number,
+	title: string,
+	line1: string,
+	line2: string,
+	buttonText: string,
+	buttonColor: Color3,
+	enabled: boolean,
+	onClick: () -> ()
+)
+	local row = UiKit.make("Frame", {
+		LayoutOrder = order,
+		Size = UDim2.new(1, -6, 0, 66),
+		BackgroundColor3 = UiKit.colors.row,
+		Parent = list,
+	})
+	UiKit.corner(row, 8)
+	for i, line in
+		{
+			{ text = title, font = Enum.Font.GothamBold, size = 16, color = UiKit.colors.text },
+			{ text = line1, font = Enum.Font.Gotham, size = 13, color = UiKit.colors.muted },
+			{ text = line2, font = Enum.Font.GothamBold, size = 13, color = UiKit.colors.money },
+		}
+	do
+		UiKit.make("TextLabel", {
+			Position = UDim2.fromOffset(12, 6 + (i - 1) * 19),
+			Size = UDim2.new(1, -112, 0, 18),
+			BackgroundTransparency = 1,
+			Font = line.font,
+			TextSize = line.size,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			TextColor3 = line.color,
+			Text = line.text,
+			Parent = row,
+		})
+	end
+	local holder = UiKit.make("Frame", {
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -8, 0.5, 0),
+		Size = UDim2.fromOffset(84, 34),
+		BackgroundTransparency = 1,
+		Parent = row,
+	})
+	UiKit.button(holder, buttonText, buttonColor, enabled, onClick)
+end
+
+-- A row of tab buttons in the panel's subtitle area. Calls onSelect(name) and
+-- highlights the chosen tab; returns a function to select one from code.
+function UiKit.tabs(panel: Panel, names: { string }, onSelect: (string) -> ()): (string) -> ()
+	panel.subtitle.Visible = false
+	local bar = UiKit.make("Frame", {
+		Position = UDim2.fromOffset(16, 42),
+		Size = UDim2.new(1, -32, 0, 30),
+		BackgroundTransparency = 1,
+		Parent = panel.subtitle.Parent,
+	})
+	UiKit.make("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 6), Parent = bar })
+	local buttons: { [string]: TextButton } = {}
+	local function select(name: string)
+		for tabName, button in buttons do
+			button.BackgroundColor3 = if tabName == name then UiKit.colors.action else UiKit.colors.row
+		end
+		onSelect(name)
+	end
+	for _, name in names do
+		local button = UiKit.make("TextButton", {
+			Size = UDim2.new(1 / #names, -4, 1, 0),
+			BackgroundColor3 = UiKit.colors.row,
+			Font = Enum.Font.GothamBold,
+			TextSize = 14,
+			TextColor3 = UiKit.colors.text,
+			Text = name,
+			Parent = bar,
+		})
+		UiKit.corner(button, 6)
+		button.Activated:Connect(function()
+			select(name)
+		end)
+		buttons[name] = button
+	end
+	return select
+end
+
 function UiKit.emptyNote(list: Instance, order: number, text: string)
 	UiKit.make("TextLabel", {
 		LayoutOrder = order,

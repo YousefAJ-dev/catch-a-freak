@@ -4,6 +4,7 @@
 --   /upgrade <id> <level>     set an upgrade level (shoes, hazmat, grip, farmCapacity, offlineCapacity)
 --   /spawnfreak <tier> <rarity>  spawn a freak in front of you, e.g. /spawnfreak 2 Epic
 --   /money <amount>           set your money
+--   /item <id> <count>        set an item count (netLauncher, bearTrap)
 -- Results print to the Output window.
 
 local Players = game:GetService("Players")
@@ -38,6 +39,16 @@ local commands: { Command } = {
 			assert(id and level, "expected an upgrade id and a level")
 			DataService.setUpgradeLevel(player, id, level)
 			return ("%s = %d"):format(id, player:GetAttribute("Upgrade_" .. id))
+		end,
+	},
+	{
+		alias = "/item",
+		usage = "/item <id> <count>",
+		run = function(player, args)
+			local id, count = args[1], tonumber(args[2])
+			assert(id and count, "expected an item id and a count")
+			DataService.setItemCount(player, id, count)
+			return ("%s = %d"):format(id, player:GetAttribute("Item_" .. id))
 		end,
 	},
 	{

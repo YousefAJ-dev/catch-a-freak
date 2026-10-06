@@ -36,13 +36,13 @@ local function part(props: { [string]: any }): Part
 	return p
 end
 
-local function label(parent: Instance, text: string, offsetY: number, color: Color3?)
+local function label(parent: Instance, text: string, offsetY: number, color: Color3?, maxDistance: number?)
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "Label"
 	gui.Size = UDim2.fromOffset(200, 50)
 	gui.StudsOffset = Vector3.new(0, offsetY, 0)
 	gui.AlwaysOnTop = false
-	gui.MaxDistance = 150
+	gui.MaxDistance = maxDistance or 150
 	local t = Instance.new("TextLabel")
 	t.Size = UDim2.fromScale(1, 1)
 	t.BackgroundTransparency = 1
@@ -441,7 +441,8 @@ local function buildPlots(map: Instance)
 			CanCollide = false,
 			Parent = plot,
 		})
-		label(collectPad, "COLLECT", 3, Color3.fromRGB(120, 255, 140))
+		-- Short range so the eight COLLECT labels don't clutter the view from the shop.
+		label(collectPad, "COLLECT", 3, Color3.fromRGB(120, 255, 140), 60)
 
 		-- Value sign beside the collection pad: money generated and waiting to be
 		-- collected, plus the farm's income per second. FarmService fills these in.

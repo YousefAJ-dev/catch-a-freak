@@ -1,13 +1,13 @@
 --!strict
--- Owns player health: radiation damage in the rings and regeneration in the
--- safe zone, both applied once per second. Roblox's default regeneration is
--- disabled by the empty "Health" script in StarterCharacterScripts.
+-- Radiation damage in the rings and regeneration in the safe zone, both
+-- applied once per second. Roblox's default regeneration is disabled by the
+-- empty "Health" script in StarterCharacterScripts; CharacterService sets max
+-- health on spawn.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Formulas = require(ReplicatedStorage.Shared.Formulas)
-local PlayerConfig = require(ReplicatedStorage.Shared.Config.Player)
 local World = require(ReplicatedStorage.Shared.Config.World)
 local DataService = require(script.Parent.DataService)
 local ZoneService = require(script.Parent.ZoneService)
@@ -15,12 +15,6 @@ local ZoneService = require(script.Parent.ZoneService)
 local TICK = 1
 
 local RadiationService = {}
-
-local function onCharacterAdded(character: Model)
-	local humanoid = character:WaitForChild("Humanoid") :: Humanoid
-	humanoid.MaxHealth = PlayerConfig.maxHealth
-	humanoid.Health = PlayerConfig.maxHealth
-end
 
 local function tick(player: Player)
 	local character = player.Character
@@ -39,17 +33,6 @@ local function tick(player: Player)
 end
 
 function RadiationService.start()
-	local function onPlayerAdded(player: Player)
-		player.CharacterAdded:Connect(onCharacterAdded)
-		if player.Character then
-			task.spawn(onCharacterAdded, player.Character)
-		end
-	end
-	Players.PlayerAdded:Connect(onPlayerAdded)
-	for _, player in Players:GetPlayers() do
-		onPlayerAdded(player)
-	end
-
 	task.spawn(function()
 		while true do
 			task.wait(TICK)
