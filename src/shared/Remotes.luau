@@ -16,6 +16,7 @@ local EVENTS = {
 	"UseNetLauncher", -- client -> server: (target: Vector3) fire a net at a point
 	"PlaceBearTrap", -- client -> server: () set a trap where the player stands
 	"NetImpact", -- server -> all clients: (position: Vector3, caught: number) net visual
+	"Popup", -- server -> client: (title: string, body: string) message the player dismisses
 }
 
 local folder: Folder

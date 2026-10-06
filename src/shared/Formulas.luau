@@ -103,6 +103,13 @@ function Formulas.offlineHours(offlineLevel: number): number
 	return 1 + Upgrades.offlineCapacity.effectPerLevel * offlineLevel
 end
 
+-- Money earned while offline: the farm's income for the time away, capped at
+-- the Offline Capacity limit. Never boosted by 2x Money (DESIGN.md section 6).
+function Formulas.offlineEarnings(incomePerSecond: number, secondsAway: number, offlineLevel: number): number
+	local cappedSeconds = math.min(math.max(secondsAway, 0), Formulas.offlineHours(offlineLevel) * 3600)
+	return math.floor(incomePerSecond * cappedSeconds)
+end
+
 -- Price of one item, scaled by the player's highest unlocked tier.
 function Formulas.itemPrice(itemId: string, highestTier: number): number
 	return (Items :: any)[itemId].basePrice * 10 ^ (highestTier - 1)

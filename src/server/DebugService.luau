@@ -5,6 +5,8 @@
 --   /spawnfreak <tier> <rarity>  spawn a freak in front of you, e.g. /spawnfreak 2 Epic
 --   /money <amount>           set your money
 --   /item <id> <count>        set an item count (netLauncher, bearTrap)
+--   /offline <seconds>        pay out offline earnings as if you'd been away that long
+--   /wipe                     reset your saved data to a new player's and kick you
 -- Results print to the Output window.
 
 local Players = game:GetService("Players")
@@ -13,6 +15,7 @@ local TextChatService = game:GetService("TextChatService")
 
 local DataService = require(script.Parent.DataService)
 local FreakService = require(script.Parent.FreakService)
+local FarmService = require(script.Parent.FarmService)
 
 type Command = {
 	alias: string,
@@ -39,6 +42,26 @@ local commands: { Command } = {
 			assert(id and level, "expected an upgrade id and a level")
 			DataService.setUpgradeLevel(player, id, level)
 			return ("%s = %d"):format(id, player:GetAttribute("Upgrade_" .. id))
+		end,
+	},
+	{
+		alias = "/offline",
+		usage = "/offline <seconds>",
+		run = function(player, args)
+			local seconds = tonumber(args[1])
+			assert(seconds, "missing seconds")
+			return ("offline earnings for %d s = %d"):format(seconds, FarmService.applyOfflineEarnings(player, seconds))
+		end,
+	},
+	{
+		alias = "/wipe",
+		usage = "/wipe",
+		run = function(player)
+			DataService.wipe(player)
+			task.defer(function()
+				player:Kick("Your data was wiped (Studio debug). Start a new playtest.")
+			end)
+			return "data wiped"
 		end,
 	},
 	{

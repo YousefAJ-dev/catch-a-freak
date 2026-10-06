@@ -286,13 +286,42 @@ local function collect(player: Player, plot: Plot)
 	notify(player, ("Collected %s"):format(Format.money(amount)))
 end
 
+-- Adds what the farm earned while the player was away (capped by Offline
+-- Capacity) to the uncollected pool and tells them. Returns the amount.
+function FarmService.applyOfflineEarnings(player: Player, secondsAway: number): number
+	local plot = plotOf[player]
+	local data = DataService.get(player)
+	if not (plot and data) then
+		return 0
+	end
+	local income = incomeOf(data.farm :: { FarmFreak })
+	local earned = Formulas.offlineEarnings(income, secondsAway, data.upgrades.offlineCapacity)
+	if earned <= 0 then
+		return 0
+	end
+	data.uncollected += earned
+	updatePool(player, plot)
+	local hours = Formulas.offlineHours(data.upgrades.offlineCapacity)
+	local capped = secondsAway > hours * 3600
+	Remotes.Popup:FireClient(
+		player,
+		"Welcome back!",
+		("While you were away your lab earned %s.%s\nIt's waiting on your green collection pad."):format(
+			Format.money(earned),
+			if capped then ("\n(Capped at %d h — upgrade Offline Capacity to store more.)"):format(hours) else ""
+		)
+	)
+	return earned
+end
+
 local function claimPlot(player: Player)
-	-- DataService and CarryService create their records on PlayerAdded too;
-	-- signal order isn't guaranteed, so wait for them.
-	while player.Parent and not (DataService.get(player) and CarryService.get(player)) do
+	-- Data loads asynchronously and CarryService creates its record on
+	-- PlayerAdded too; wait for both.
+	DataService.waitFor(player)
+	while player.Parent and not CarryService.get(player) do
 		task.wait()
 	end
-	if not player.Parent then
+	if not (player.Parent and DataService.get(player)) then
 		return
 	end
 	for _, plot in plots do
@@ -306,6 +335,10 @@ local function claimPlot(player: Player)
 			end
 			refreshIncubators(plot)
 			replicateFarm(player, plot)
+			local lastSeen = DataService.previousLastSeen(player)
+			if lastSeen > 0 then
+				FarmService.applyOfflineEarnings(player, os.time() - lastSeen)
+			end
 			player:GetAttributeChangedSignal("Upgrade_farmCapacity"):Connect(function()
 				if plotOf[player] == plot then
 					refreshIncubators(plot)
