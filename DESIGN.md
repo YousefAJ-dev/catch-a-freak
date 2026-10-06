@@ -10,21 +10,21 @@ All numbers in this document are **starting values to tune during playtests**. K
 
 | Topic | Decision |
 |-------|----------|
-| Tiers | 3 tiers at launch, one ring per tier. Tiers are data, so more can be added later. |
-| Layout | Concentric rings. A cylindrical barrier protects the shop and inner ring. Each tier is a ring further out, separated from the previous one by a giant wall. |
+| Tiers | 5 tiers at launch, one ring per tier, built to grow to 10. Tiers are data, so more can be added later. |
+| Layout | Concentric rings, every ring the same 150 studs wide. A cylindrical barrier protects the shop and inner ring. Each tier is a ring further out, separated from the previous one by a giant wall. Later rings feel different through their environment, not their size. |
 | Doors | Every barrier and wall has 4 doors. The barrier's doors are always open to everyone. Tier wall doors open per player once that player has unlocked the tier. |
 | Shared world | The outer rings and the freaks in them are shared by everyone on the server. |
 | Rarities | 5: Common, Uncommon, Rare, Epic, Legendary. Rarities are data and can be edited later. |
 | Rarity odds | Common 50%, Uncommon 30%, Rare 14%, Epic 5%, Legendary 1%, rolled on every spawn. |
-| Species | 3 per tier, 9 total. |
-| Population | 70 freaks in Ring 1, 80 in Ring 2, 90 in Ring 3. |
+| Species | 3 per tier, 15 at launch. |
+| Population | A fixed 70–90 freaks per ring: 70, 75, 80, 85, 90 for Rings 1–5; later rings 90. Only rings with players near them have freaks at all (section 12). |
 | Carrying | Up to 9 freaks at once. |
 | Value | Each tier is worth 10× the one before it. |
 | Death | Lose every carried freak. Keep money, upgrades, items, and farm. Respawn at the shop. |
 | Farms | One private plot per player, 8 plots, 8 players per server. Every plot is a fixed size with 16 glass incubators on one floor. Capacity upgrades unlock incubators; the plot never changes size. |
-| Radiation | Constant damage per second, set per tier. No healing in the rings. |
+| Radiation | Constant damage per second, doubling every ring. No healing in the rings. |
 | Gates | Each gate asks for 2 specific freaks. A freak of the required species at the required rarity **or higher** counts. Wheel prizes count. |
-| Pacing | Fast at the start, slowing sharply. Each tier multiplies income by 10; each upgrade level multiplies its cost by 4 (Farm Capacity by 2.8, since it has more levels). |
+| Pacing | Fast at the start, slowing sharply. Each tier multiplies income by 10. Gear (Shoes, Hazmat, Grip) unlocks 5 more levels per ring, and each ring's 5 levels cost 10× the previous ring's, so gear keeps pace with both income and radiation. |
 
 ---
 
@@ -36,18 +36,28 @@ A circular map. Distances are in studs from the map center. Which zone a player 
 |------|--------|----------|-----------|
 | Shop | 0–40 | Shop, sell counter, gate counter, daily wheel, spawn point | None |
 | Inner ring | 40–175 | 8 farm plots (layout in section 6) | None |
-| Ring 1 (Tier 1) | 175–375 | Tier 1 freaks | Low |
-| Ring 2 (Tier 2) | 375–575 | Tier 2 freaks | Medium |
-| Ring 3 (Tier 3) | 575–775 | Tier 3 freaks | High |
+| Ring 1 (Tier 1) | 175–325 | Tier 1 freaks | 8 HP/s |
+| Ring 2 (Tier 2) | 325–475 | Tier 2 freaks | 16 HP/s |
+| Ring 3 (Tier 3) | 475–625 | Tier 3 freaks | 32 HP/s |
+| Ring 4 (Tier 4) | 625–775 | Tier 4 freaks | 64 HP/s |
+| Ring 5 (Tier 5) | 775–925 | Tier 5 freaks | 128 HP/s |
+
+Ring N spans radius `175 + 150 × (N − 1)` to `175 + 150 × N`. Raw radiation is before the Hazmat Suit (section 4).
 
 Walls:
 
 | Wall | Radius | Height | Doors |
 |------|--------|--------|-------|
 | Safe-zone barrier | 175 | 60 | 4 openings, always open to everyone |
-| Tier 2 wall | 375 | 120 | 4 doors, open per player after Gate 1 |
-| Tier 3 wall | 575 | 120 | 4 doors, open per player after Gate 2 |
-| Outer boundary | 775 | 120 | None |
+| Tier 2 wall | 325 | 120 | 4 doors, open per player after Gate 1 |
+| Tier 3 wall | 475 | 120 | 4 doors, open per player after Gate 2 |
+| Tier 4 wall | 625 | 120 | 4 doors, open per player after Gate 3 |
+| Tier 5 wall | 775 | 120 | 4 doors, open per player after Gate 4 |
+| Outer boundary | 925 | 120 | None |
+
+Growing to 10 rings later: each new ring adds a tier wall at the old boundary and moves the boundary 150 studs out (10 rings → boundary at 1675). Two things to handle then: a Roblox part can't be wider than 2048 studs, so ground discs past radius 1024 must be split into pieces; and the outermost walls need longer segments to keep the part count reasonable.
+
+Because rings are concentric and equally wide, outer rings have more ground area (Ring 5 has about 2.7× Ring 1's area), so the same 70–90 freaks are more spread out. If that ever feels sparse, tighten freak wandering or add a few freaks rather than widening rings.
 
 - Doors sit at north, east, south, and west on every wall, lined up so a player can run straight out through all of them.
 - Each door is 24 studs wide.
@@ -78,7 +88,7 @@ Safe zone = shop + inner ring. Health regenerates at 10 HP/sec there. Roblox's d
 ## 4. Player
 
 - Health: 100
-- Base walk speed: 16
+- Walk speed: `min(16 + 2.5 × shoesLevel, 55)`. Each Shoes level is a noticeable jump; the cap of 55 is reached around Ring 4. Above that, Roblox characters get hard to steer and the client struggles to stream the map in ahead of the player, so later rings need travel aids rather than more raw speed.
 - Carry slots: 9. Each slot holds one freak.
 - Carrying does not slow the player.
 - Carried freaks trail behind the player as miniatures (about 40% size) in carry-slot order, each over a small disc glowing in its rarity color. Everyone sees every player's trail. Placing, selling or dying removes them from the trail.
@@ -87,22 +97,22 @@ Safe zone = shop + inner ring. Health regenerates at 10 HP/sec there. Roblox's d
 
 Damage per second while in a ring:
 
-`damage = tier.radiationDps ÷ (1 + 1.7 × hazmatLevel)`
+`damage = tier.radiationDps × 0.85 ^ hazmatLevel`
 
-Each Hazmat level adds to the divisor, so the first levels cut damage sharply and later ones taper off. With no suit, 100 HP lasts 12.5 seconds in Ring 1: enough to grab one or two freaks near the barrier and get back.
+Raw radiation doubles every ring (8, 16, 32, 64, 128 HP/s for Rings 1–5). Each Hazmat level multiplies damage by 0.85, and 5 more levels unlock with each ring (section 7), so gear grows at the same pace as radiation. A player geared for ring N finds every earlier ring progressively cheaper, so crossing them costs about the same however far out the target ring is. That's what keeps 10 rings survivable. With no suit, 100 HP lasts 12.5 seconds in Ring 1: enough to grab one or two freaks near the barrier and get back.
 
 The server applies it once per second based on the player's distance from the center. The client only displays it.
 
-Tuning target: with the upgrades a player can afford when a ring unlocks (about level 3 for Ring 2, level 6 for Ring 3), they should get roughly 20–30 seconds inside the new ring after crossing the earlier ones and saving enough health to get back.
+Tuning target: a ring is tense the moment it unlocks and comfortable once the player has bought that ring's gear. Seconds a player can spend inside ring N after crossing the earlier rings both ways and saving enough health to get back (100 HP, rings 150 wide, Shoes and Hazmat at the same level):
 
-Current numbers against that target (100 HP, walk speed 16 + Shoes level, Shoes assumed level with Hazmat):
-
-| Situation | Seconds |
-|-----------|---------|
-| Ring 1, no suit | 12.5 |
-| Ring 1, Hazmat 1 | 34 |
-| Inside Ring 2 at Hazmat 3, after crossing Ring 1 both ways | ~28 |
-| Inside Ring 3 at Hazmat 6, after crossing Rings 1 and 2 both ways | ~21 |
+| Ring | Just unlocked (gear level 5 × (N − 1)) | Fully geared for it (gear level 5 × N) |
+|------|----------------------------------------|----------------------------------------|
+| 1 | 12.5 | 28 |
+| 2 | 9 | 28 |
+| 3 | 10 | 32 |
+| 4 | 13 | 36 |
+| 5 | 15 | 40 |
+| 10 (future) | 31 | 77 |
 
 ### Death
 
@@ -122,8 +132,10 @@ A freak is defined by species, tier, and rarity.
 | Tier | Ring | Population | Radiation DPS | Base income ($/sec) | Base hold (sec) | Freak speed |
 |------|------|------------|---------------|---------------------|-----------------|-------------|
 | 1 | Ring 1 | 70 | 8 | 1 | 1.0 | 6 |
-| 2 | Ring 2 | 80 | 16 | 10 | 2.0 | 9 |
-| 3 | Ring 3 | 90 | 32 | 100 | 3.5 | 12 |
+| 2 | Ring 2 | 75 | 16 | 10 | 2.0 | 9 |
+| 3 | Ring 3 | 80 | 32 | 100 | 3.5 | 12 |
+| 4 | Ring 4 | 85 | 64 | 1,000 | 5.5 | 14 |
+| 5 | Ring 5 | 90 | 128 | 10,000 | 8.0 | 16 |
 
 ### Rarities
 
@@ -147,6 +159,8 @@ Income per second by tier and rarity:
 | 1 | 1 | 2 | 5 | 15 | 50 |
 | 2 | 10 | 20 | 50 | 150 | 500 |
 | 3 | 100 | 200 | 500 | 1,500 | 5,000 |
+| 4 | 1,000 | 2,000 | 5,000 | 15,000 | 50,000 |
+| 5 | 10,000 | 20,000 | 50,000 | 150,000 | 500,000 |
 
 ### Species
 
@@ -157,6 +171,8 @@ Names are placeholders. Rename freely. Species within a tier have identical stat
 | 1 | Glowbug | Twitcher | Sludgelet |
 | 2 | Tri-Eye | Rustback | Fizzler |
 | 3 | Gloomhound | Splitjaw | Wobbler |
+| 4 | Voidmoth | Gnashling | Bloatworm |
+| 5 | Hexwing | Grimjaw | Pulsar |
 
 ### Spawning
 
@@ -176,7 +192,7 @@ Names are placeholders. Rename freely. Species within a tier have identical stat
 ### Grabbing
 
 - Each freak has a `ProximityPrompt` with a 10-stud range. `HoldDuration` is set per player on the client from the formula below.
-- `holdTime = tier.baseHold × rarity.holdMultiplier × (1 − 0.07 × gripLevel)`
+- `holdTime = tier.baseHold × rarity.holdMultiplier × 0.93 ^ gripLevel`. Base holds grow per tier, and Grip unlocks 5 levels per ring like the other gear, so a fully geared player's Common grab stays around 1 second in every ring (0.7 s in Ring 1, 1.3 s in Ring 5).
 - Leaving range or releasing the input cancels the grab and resets the bar.
 - On completion the server checks that the player is alive, in the same ring, within range, held for the required time, and has a free carry slot. Then the freak moves into the first free slot.
 - Implementation note: Roblox checks a prompt's range against the server's copy of the freak, which only moves at the start of each waypoint. So the server-side prompt has a range of grab range + wander radius and a hold time of 0, and each client sets its own copy to the real 10-stud range and per-player hold time. The server's own checks above are what actually decide a grab.
@@ -188,6 +204,8 @@ Hold time in seconds at Grip level 0:
 | 1 | 1.0 | 1.5 | 2.5 | 4.0 | 6.0 |
 | 2 | 2.0 | 3.0 | 5.0 | 8.0 | 12.0 |
 | 3 | 3.5 | 5.3 | 8.8 | 14.0 | 21.0 |
+| 4 | 5.5 | 8.3 | 13.8 | 22.0 | 33.0 |
+| 5 | 8.0 | 12.0 | 20.0 | 32.0 | 48.0 |
 
 ---
 
@@ -251,17 +269,19 @@ Freaks in incubators:
 
 Cost of the next level = `baseCost × growth ^ currentLevel`, rounded to the nearest dollar.
 
-| Upgrade | Effect per level | Max level | Base cost | Growth | Cost of level 5 | Cost of last level |
-|---------|------------------|-----------|-----------|--------|-----------------|--------------------|
-| Shoes | +1 walk speed | 10 | 50 | ×4 | 12,800 | 13.1M |
-| Hazmat Suit | Radiation damage ÷ (1 + 1.7 × level) | 10 | 75 | ×4 | 19,200 | 19.7M |
-| Stronger Grip | −7% grab hold time | 10 | 60 | ×4 | 15,360 | 15.7M |
-| Farm Capacity | Unlocks the next incubator | 13 | 150 | ×2.8 | 9,220 | 34.8M |
-| Offline Capacity | +1 hour offline limit | 7 | 300 | ×4 | 76,800 | 1.2M |
+**Gear** (Shoes, Hazmat Suit, Stronger Grip) unlocks with progress: a player can buy up to `5 × highestTier` levels of each, so 5 more levels open every time a ring unlocks. Gear grows ×10^(1/5) ≈ ×1.585 per level, which makes each ring's 5 levels cost exactly 10× the previous ring's, matching the 10× income of each new ring.
 
-Farm Capacity uses ×2.8 instead of ×4 so its 13 levels (enough to unlock all 16 incubators) cost about the same in total as 10 levels at ×4 did: ~54M vs ~52M.
+| Upgrade | Effect per level | Max level | Level cap | Base cost | Growth | Cost of level 5 | Cost of last level |
+|---------|------------------|-----------|-----------|-----------|--------|-----------------|--------------------|
+| Shoes | +2.5 walk speed (capped at 55) | 16 | 5 per unlocked tier | 50 | ×1.585 | 315 | 50K |
+| Hazmat Suit | Radiation damage ×0.85 | 25 (5 per ring; 50 at 10 rings) | 5 per unlocked tier | 75 | ×1.585 | 473 | 4.73M |
+| Stronger Grip | Grab hold time ×0.93 | 25 (5 per ring; 50 at 10 rings) | 5 per unlocked tier | 60 | ×1.585 | 379 | 3.79M |
+| Farm Capacity | Unlocks the next incubator | 13 | — | 150 | ×2.8 | 9,220 | 34.8M |
+| Offline Capacity | +1 hour offline limit | 7 | — | 300 | ×4 | 76,800 | 1.2M |
 
-The first few levels cost less than one run's haul. The last few take hours of Tier 3 farm income. This is the main pacing lever.
+Shoes stops at 16 because level 16 reaches the 55 speed cap. Farm Capacity uses ×2.8 so its 13 levels (enough to unlock all 16 incubators) cost about 54M in total.
+
+The first levels of each ring cost less than one run's haul there. Buying a ring's full set takes a few dozen runs or a stretch of farm income. This is the main pacing lever.
 
 ### Items
 
@@ -288,10 +308,12 @@ Each gate asks for 2 specific freaks. A freak counts if it is the required speci
 |------|---------|---------------|---------------|
 | 1 | Tier 2 (Ring 2) | Uncommon Twitcher | Rare Glowbug |
 | 2 | Tier 3 (Ring 3) | Rare Rustback | Epic Fizzler |
+| 3 | Tier 4 (Ring 4) | Rare Gloomhound | Epic Wobbler |
+| 4 | Tier 5 (Ring 5) | Rare Gnashling | Epic Bloatworm |
 
 - The gate panel always shows the current requirements and which are done.
 - Requirements can be turned in one at a time. Progress is saved.
-- Ring 3 is the last ring at launch.
+- Ring 5 is the last ring at launch.
 
 ---
 
@@ -309,7 +331,7 @@ Located in the shop. One free spin per UTC day. The player needs one free carry 
 - "Current tier" is the player's highest unlocked tier.
 - Species is random within the prize tier.
 - The wheel never gives anything above Rare from the next tier. This keeps it from skipping progression.
-- If the player is already on Tier 3, the 10% result gives an Epic Tier 3 freak and the 3% result gives a Legendary Tier 3 freak.
+- If the player is already on the last tier, the 10% result gives an Epic freak of that tier and the 3% result gives a Legendary one.
 - The odds table is shown on the wheel UI at all times.
 - The server rolls the result. The client only plays the animation.
 
@@ -357,7 +379,10 @@ The server owns and validates everything that matters: money, health, radiation,
 
 ### Freak performance
 
-There are 240 freaks alive at once. They must be cheap.
+A full 5-ring map holds 400 freaks (1,000+ at 10 rings), so ring count must not drive the cost:
+
+- **Only rings near players are simulated.** A ring's freaks spawn (its full population at once) when any player comes within 60 studs of it, and all despawn once no player has been that close for 60 seconds. With 8 players, at most 8 rings are ever active and usually 2–3, so 10 rings cost about what 2–3 do. Despawning ends any traps and pins in that ring.
+- **Clients only animate nearby freaks**, within 300 studs; farther ones are left where they are. Workspace streaming keeps distant parts of the map off the client entirely.
 
 - Freaks are anchored models with no `Humanoid`.
 - The server does not move them every frame. For each freak it stores a current waypoint (start position, target position, start time, speed) and publishes it as attributes on the model whenever the waypoint changes.
@@ -458,7 +483,8 @@ Build in this order. Do not start a milestone until the previous one passes its 
 | 6 | Saving | Leaving and rejoining restores money, upgrades, items, farm, uncollected pool, and highest tier. Carried freaks are gone. Offline earnings are added, capped, and shown in a popup. |
 | 6.5 | Haul, place, and sell flow | This completes and re-checks Milestone 4's flow end to end. First audit what already exists against sections 4, 6, and 7, then fix or build whatever is missing. Done when all of this works in one continuous playtest: (1) The player catches 3 freaks in Ring 1 and a miniature of each trails behind them. (2) Back at their own plot, the Farm prompt opens the farm panel. Placing 2 freaks puts them on pads, removes them from the carry bar and the trail, and raises the income on the owner sign. (3) At the shop, the Sell prompt opens the sell panel. Selling the third freak adds 30× its income to money and clears its slot. (4) "Place all" and "Sell all" both work with a full carry bar of 9. (5) With every unlocked pad full, placing is refused with a "Farm full" message. (6) The Farm prompt does not appear on other players' plots, and the server refuses place and sell requests made away from the plot or counter. (7) Picking a freak up from a pad returns it to the carry bar. (8) After leaving and rejoining, the placed freaks are back on their pads. |
 | 7 | Gates and tiers 2–3 | The gate panel shows Gate 1's requirements. A freak of the right species at the required rarity or higher is accepted, others are refused. Completing Gate 1 opens all 4 Tier 2 doors for that player only; Gate 2 does the same for Tier 3. Rings 2 and 3 hold 80 and 90 freaks of their own tier. The server stays smooth with all 240 freaks and 8 players. |
-| 8 | Daily wheel | One free spin per UTC day. Over 10,000 simulated server-side rolls the results are within 1 point of 47/40/10/3. The prize lands in a carry slot. A Tier 3 player gets Epic and Legendary Tier 3 in place of the next-tier results. Odds are displayed. |
+| 7.5 | Scaling to 5 rings | Rebuild the map to the section 2 radii: five 150-wide rings, a Tier 2–5 wall each with 4 doors at N/E/S/W, and the outer boundary at 925; the shop and plots are unchanged. Tiers 4 and 5 exist with their species, values, hold times and populations from section 5, and Gates 3 and 4 work like Gates 1 and 2. Radiation is 8/16/32/64/128 HP/s raw, reduced ×0.85 per Hazmat level. Walk speed is 16 + 2.5 per Shoes level, capped at 55. Grip multiplies hold time by 0.93 per level. Gear costs `base × 1.585^level`, and buying above `5 × highestTier` is refused while the shop shows which tier unlocks the next level. Existing saves keep the levels they have. A ring with no player within 60 studs has no freaks; it fills to its population when a player approaches and empties 60 seconds after the last one leaves. Clients only animate freaks within 300 studs. Using /tier and /upgrade to set the section 4 "just unlocked" gear, a player can reach each ring, stay about the table's time, and get back alive. The server stays smooth with players spread across all 5 rings. |
+| 8 | Daily wheel | One free spin per UTC day. Over 10,000 simulated server-side rolls the results are within 1 point of 47/40/10/3. The prize lands in a carry slot. A last-tier player gets Epic and Legendary freaks of their tier in place of the next-tier results. Odds are displayed. |
 | 9 | Monetization | All four products work in Studio test purchases. The revive is offered when dying with any freak and restores the full carry bar. A receipt replayed twice grants once. The paid spin is hidden when the policy check says restricted. |
 | 10 | Polish | Real freak models, sounds, particles, UI pass, mobile controls check, economy tuning against the section 4 tuning target. |
 
