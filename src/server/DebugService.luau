@@ -2,14 +2,16 @@
 -- Studio-only playtest commands, typed in chat (DESIGN.md section 12):
 --   /tier <1-3>               set your highest unlocked tier
 --   /upgrade <id> <level>     set an upgrade level (shoes, hazmat, grip, farmCapacity, offlineCapacity)
--- Results print to the Output window. More commands (money, spawn freak) arrive
--- with the systems they control.
+--   /spawnfreak <tier> <rarity>  spawn a freak in front of you, e.g. /spawnfreak 2 Epic
+-- Results print to the Output window. More commands (money) arrive with the
+-- systems they control.
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TextChatService = game:GetService("TextChatService")
 
 local DataService = require(script.Parent.DataService)
+local FreakService = require(script.Parent.FreakService)
 
 type Command = {
 	alias: string,
@@ -36,6 +38,17 @@ local commands: { Command } = {
 			assert(id and level, "expected an upgrade id and a level")
 			DataService.setUpgradeLevel(player, id, level)
 			return ("%s = %d"):format(id, player:GetAttribute("Upgrade_" .. id))
+		end,
+	},
+	{
+		alias = "/spawnfreak",
+		usage = "/spawnfreak <tier> <rarity>",
+		run = function(player, args)
+			local tier, rarity = tonumber(args[1]), args[2]
+			assert(tier and rarity, "expected a tier and a rarity")
+			-- Accept any capitalisation: "epic" -> "Epic".
+			rarity = rarity:sub(1, 1):upper() .. rarity:sub(2):lower()
+			return "spawned " .. FreakService.spawnNear(player, tier, rarity)
 		end,
 	},
 }

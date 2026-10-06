@@ -6,6 +6,7 @@ local Config = script.Parent:WaitForChild("Config")
 local World = require(Config:WaitForChild("World"))
 local Tiers = require(Config:WaitForChild("Tiers"))
 local Upgrades = require(Config:WaitForChild("Upgrades"))
+local Rarities = require(Config:WaitForChild("Rarities"))
 
 local Formulas = {}
 
@@ -26,6 +27,38 @@ end
 -- divisor, so early levels cut damage sharply and later ones taper off.
 function Formulas.radiationDps(tier: number, hazmatLevel: number): number
 	return Tiers[tier].radiationDps / (1 + Upgrades.hazmat.effectPerLevel * hazmatLevel)
+end
+
+-- Picks a rarity id from a uniform roll in [0, 1) using the spawn chances.
+function Formulas.rollRarity(roll: number): string
+	local cumulative = 0
+	for _, rarity in Rarities.list do
+		cumulative += rarity.chance
+		if roll < cumulative then
+			return rarity.id
+		end
+	end
+	return Rarities.list[#Rarities.list].id
+end
+
+-- Seconds a player must hold the grab input on a freak.
+function Formulas.holdTime(tier: number, rarityId: string, gripLevel: number): number
+	local reduction = Upgrades.grip.effectPerLevel * gripLevel
+	return Tiers[tier].baseHold * Rarities.byId[rarityId].holdMultiplier * math.max(0, 1 - reduction)
+end
+
+-- Where a freak is on its current waypoint at time `now` (server time), and
+-- whether it is still walking. Server and clients share this so they agree.
+function Formulas.freakPosition(from: Vector3, to: Vector3, startTime: number, speed: number, now: number): (Vector3, boolean)
+	local distance = (to - from).Magnitude
+	if distance < 1e-3 or speed <= 0 then
+		return to, false
+	end
+	local alpha = (now - startTime) * speed / distance
+	if alpha >= 1 then
+		return to, false
+	end
+	return from:Lerp(to, math.max(alpha, 0)), true
 end
 
 -- Cost of buying the next level of an upgrade, rounded to the nearest dollar.

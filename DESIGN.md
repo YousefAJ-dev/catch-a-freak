@@ -178,6 +178,7 @@ Names are placeholders. Rename freely. Species within a tier have identical stat
 - `holdTime = tier.baseHold × rarity.holdMultiplier × (1 − 0.07 × gripLevel)`
 - Leaving range or releasing the input cancels the grab and resets the bar.
 - On completion the server checks that the player is alive, in the same ring, within range, held for the required time, and has a free carry slot. Then the freak moves into the first free slot.
+- Implementation note: Roblox checks a prompt's range against the server's copy of the freak, which only moves at the start of each waypoint. So the server-side prompt has a range of grab range + wander radius and a hold time of 0, and each client sets its own copy to the real 10-stud range and per-player hold time. The server's own checks above are what actually decide a grab.
 
 Hold time in seconds at Grip level 0:
 
