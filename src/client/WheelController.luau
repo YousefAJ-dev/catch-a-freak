@@ -17,7 +17,9 @@ local Format = require(Shared.Format)
 local Remotes = require(Shared.Remotes)
 local Wheel = require(Shared.Config.Wheel)
 local Rarities = require(Shared.Config.Rarities)
+local Products = require(Shared.Config.Products)
 local UiKit = require(script.Parent.UiKit)
+local Purchases = require(script.Parent.Purchases)
 
 local player = Players.LocalPlayer
 
@@ -162,6 +164,15 @@ function WheelController.start()
 			})
 		end
 
+		-- Paid spins are "paid random items" under Roblox policy: offered only
+		-- where allowed, and only below the full odds table shown above.
+		if player:GetAttribute("PaidRandomItemsRestricted") == false then
+			local product = Products.developerProducts.extraSpin
+			UiKit.row(panel.list, 10, product.name, product.description, Purchases.productPrice("extraSpin"), "Buy", Color3.fromRGB(0, 160, 110), true, function()
+				Purchases.promptProduct("extraSpin")
+			end)
+		end
+
 		local extra = (player:GetAttribute("WheelExtraSpins") :: number?) or 0
 		local wait = freeSpinWait()
 		local status = if wait <= 0
@@ -233,7 +244,8 @@ function WheelController.start()
 		end
 		render()
 	end)
-	for _, attribute in { "WheelLastFreeDay", "WheelExtraSpins", "Carry", "HighestTier" } do
+	task.spawn(Purchases.productPrice, "extraSpin") -- fetch the price once, in the background
+	for _, attribute in { "WheelLastFreeDay", "WheelExtraSpins", "Carry", "HighestTier", "PaidRandomItemsRestricted" } do
 		player:GetAttributeChangedSignal(attribute):Connect(function()
 			if not spinning then
 				render()

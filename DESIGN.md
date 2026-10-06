@@ -344,7 +344,7 @@ Located in the shop. One free spin per UTC day. The player needs one free carry 
 
 ## 10. Monetization
 
-Build this last, after the loop is fun. Product IDs go in a config module as placeholders until the products are created in Creator Hub.
+Build this last, after the loop is fun. Product and Game Pass IDs live in `Config/Products.luau`; negative IDs are placeholders until the products are created in Creator Hub (prices are set there, not in code). While an ID is a placeholder its Buy button explains that instead of opening a purchase prompt, and in Studio `/buy <money2x|extraSpin|revive> [purchaseId]` and `/buyskin <key>` run the real grant code with a simulated purchase.
 
 | Product | Type | Behavior |
 |---------|------|----------|
@@ -459,7 +459,8 @@ One record per player, saved with **ProfileStore** (decided in Milestone 6) for 
   lastSeen = 0,                       -- os.time() at last save
   wheel = { lastFreeSpinDay = 0, extraSpins = 0 },
   boost2xSecondsLeft = 0,
-  ownedSkins = {},
+  ownedSkins = {},                    -- skin set keys; Game Passes are re-checked on join
+  equippedSkin = "",                  -- "" for none
   processedReceipts = {},             -- last 50 purchase IDs
 }
 ```

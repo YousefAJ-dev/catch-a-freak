@@ -40,8 +40,9 @@ export type Data = {
 	lastSeen: number, -- os.time() at the last save
 	wheel: { lastFreeSpinDay: number, extraSpins: number },
 	boost2xSecondsLeft: number,
-	ownedSkins: { any },
-	processedReceipts: { any },
+	ownedSkins: { string }, -- skin set keys (Config/Products)
+	equippedSkin: string, -- "" for none
+	processedReceipts: { string }, -- recent Developer Product PurchaseIds
 }
 
 local function newData(): Data
@@ -62,6 +63,7 @@ local function newData(): Data
 		wheel = { lastFreeSpinDay = 0, extraSpins = 0 },
 		boost2xSecondsLeft = 0,
 		ownedSkins = {},
+		equippedSkin = "",
 		processedReceipts = {},
 	}
 end
@@ -106,6 +108,9 @@ local function replicate(player: Player, data: Data)
 	player:SetAttribute("GateProgress", HttpService:JSONEncode(data.gateProgress))
 	player:SetAttribute("WheelLastFreeDay", data.wheel.lastFreeSpinDay)
 	player:SetAttribute("WheelExtraSpins", data.wheel.extraSpins)
+	player:SetAttribute("Boost2xSecondsLeft", data.boost2xSecondsLeft)
+	player:SetAttribute("OwnedSkins", HttpService:JSONEncode(data.ownedSkins))
+	player:SetAttribute("EquippedSkin", data.equippedSkin)
 end
 
 -- Re-sends the mirrored attributes after a service changed the record directly.
@@ -177,6 +182,53 @@ function DataService.setUpgradeLevel(player: Player, upgradeId: string, level: n
 	assert(upgrade, "unknown upgrade " .. upgradeId)
 	data.upgrades[upgradeId] = math.clamp(math.floor(level), 0, upgrade.maxLevel)
 	replicate(player, data)
+end
+
+-- Grants a Developer Product purchase exactly once and reports when it's safe
+-- to tell Roblox it was granted (DESIGN.md section 10; the PurchaseId-cache
+-- pattern from ProfileStore's docs). `grant` runs only if this PurchaseId isn't
+-- already recorded; then this yields until a save containing the PurchaseId
+-- has reached the DataStore. Returns PurchaseGranted once it's saved, or
+-- NotProcessedYet (Roblox retries later, even after a rejoin) if the grant
+-- failed or the session ended first.
+function DataService.processPurchase(player: Player, purchaseId: string, cacheSize: number, grant: () -> ()): Enum.ProductPurchaseDecision
+	local profile = profiles[player]
+	if not (profile and profile:IsActive()) then
+		return Enum.ProductPurchaseDecision.NotProcessedYet
+	end
+	local data = profile.Data :: Data
+	if not table.find(data.processedReceipts, purchaseId) then
+		local ok, err = pcall(grant)
+		if not ok then
+			warn(("[DataService] purchase %s for %s failed to grant: %s"):format(purchaseId, player.Name, tostring(err)))
+			return Enum.ProductPurchaseDecision.NotProcessedYet
+		end
+		while #data.processedReceipts >= cacheSize do
+			table.remove(data.processedReceipts, 1)
+		end
+		table.insert(data.processedReceipts, purchaseId)
+		replicate(player, data)
+	end
+
+	local function isSaved(): boolean
+		local saved = profile.LastSavedData and profile.LastSavedData.processedReceipts
+		return saved ~= nil and table.find(saved, purchaseId) ~= nil
+	end
+	while profile:IsActive() do
+		if isSaved() then
+			return Enum.ProductPurchaseDecision.PurchaseGranted
+		end
+		local before = profile.LastSavedData
+		profile:Save()
+		if profile.LastSavedData == before then
+			profile.OnAfterSave:Wait()
+		end
+		if isSaved() then
+			return Enum.ProductPurchaseDecision.PurchaseGranted
+		end
+		task.wait(10)
+	end
+	return Enum.ProductPurchaseDecision.NotProcessedYet
 end
 
 -- Studio debug: resets the player's saved data to a brand-new record. The

@@ -76,10 +76,41 @@ function CarryService.clear(player: Player)
 	end
 end
 
+-- Called with (player, freaks lost) whenever dying empties a carry bar that
+-- had freaks in it; the revive offer (MonetizationService) listens.
+local deathListeners: { (Player, { CarriedFreak }) -> () } = {}
+
+function CarryService.onLostOnDeath(listener: (Player, { CarriedFreak }) -> ())
+	table.insert(deathListeners, listener)
+end
+
+-- Puts freaks back into free slots (used by the revive purchase). Returns how
+-- many fit.
+function CarryService.restore(player: Player, freaks: { CarriedFreak }): number
+	local restored = 0
+	for _, freak in freaks do
+		if CarryService.add(player, freak) then
+			restored += 1
+		end
+	end
+	return restored
+end
+
 local function onCharacterAdded(player: Player, character: Model)
 	local humanoid = character:WaitForChild("Humanoid") :: Humanoid
 	humanoid.Died:Connect(function()
+		local lost = {}
+		for _, slot in slotsByPlayer[player] or {} do
+			if slot then
+				table.insert(lost, slot)
+			end
+		end
 		CarryService.clear(player)
+		if #lost > 0 then
+			for _, listener in deathListeners do
+				task.spawn(listener, player, lost)
+			end
+		end
 	end)
 end
 

@@ -10,6 +10,11 @@
 --   /wipe                     reset your saved data to a new player's and kick you
 --   /wheel reset              make today's free wheel spin available again
 --   /wheel spins <count>      set your extra wheel spins
+--   /buy <money2x|extraSpin|revive> [purchaseId]  simulate a Developer Product
+--                             purchase through the real receipt handler; reuse a
+--                             purchaseId to replay a receipt
+--   /buyskin <key>            simulate buying a skin set Game Pass
+--   /policy restricted|open   pretend paid random items are (not) restricted
 -- Results print to the Output window.
 
 local Players = game:GetService("Players")
@@ -20,6 +25,7 @@ local DataService = require(script.Parent.DataService)
 local FreakService = require(script.Parent.FreakService)
 local FarmService = require(script.Parent.FarmService)
 local WheelService = require(script.Parent.WheelService)
+local MonetizationService = require(script.Parent.MonetizationService)
 
 type Command = {
 	alias: string,
@@ -69,6 +75,31 @@ local commands: { Command } = {
 			assert(args[1] == "spins" and count, "expected 'reset' or 'spins <count>'")
 			WheelService.setExtraSpins(player, count)
 			return ("extra spins = %d"):format(count)
+		end,
+	},
+	{
+		alias = "/buy",
+		usage = "/buy <money2x|extraSpin|revive> [purchaseId]",
+		run = function(player, args)
+			assert(args[1], "expected a product key")
+			return MonetizationService.simulatePurchase(player, args[1], args[2])
+		end,
+	},
+	{
+		alias = "/buyskin",
+		usage = "/buyskin <key>",
+		run = function(player, args)
+			assert(args[1], "expected a skin key")
+			return MonetizationService.simulateSkinPurchase(player, args[1])
+		end,
+	},
+	{
+		alias = "/policy",
+		usage = "/policy restricted|open",
+		run = function(player, args)
+			assert(args[1] == "restricted" or args[1] == "open", "expected restricted or open")
+			MonetizationService.setPolicyRestricted(player, args[1] == "restricted")
+			return "PaidRandomItemsRestricted = " .. tostring(args[1] == "restricted")
 		end,
 	},
 	{

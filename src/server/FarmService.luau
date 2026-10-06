@@ -118,7 +118,8 @@ local function updatePool(player: Player, plot: Plot)
 	if not data then
 		return
 	end
-	local income = incomeOf(data.farm :: { FarmFreak })
+	-- What the farm actually earns right now, including 2x Money.
+	local income = incomeOf(data.farm :: { FarmFreak }) * Formulas.moneyMultiplier(data.boost2xSecondsLeft)
 	player:SetAttribute("Uncollected", data.uncollected)
 	player:SetAttribute("FarmIncome", income)
 	setValueSign(plot, data.uncollected, income)
@@ -484,7 +485,7 @@ function FarmService.start()
 			for player, plot in plotOf do
 				local data = DataService.get(player)
 				if data then
-					data.uncollected += incomeOf(data.farm :: { FarmFreak }) * INCOME_TICK
+					data.uncollected += incomeOf(data.farm :: { FarmFreak }) * Formulas.moneyMultiplier(data.boost2xSecondsLeft) * INCOME_TICK
 					updatePool(player, plot)
 				end
 			end

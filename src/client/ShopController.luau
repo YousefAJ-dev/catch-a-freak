@@ -14,7 +14,14 @@ local Remotes = require(Shared.Remotes)
 local Upgrades = require(Shared.Config.Upgrades)
 local Items = require(Shared.Config.Items)
 local DashConfig = require(Shared.Config.Dash)
+local Products = require(Shared.Config.Products)
 local UiKit = require(script.Parent.UiKit)
+local Purchases = require(script.Parent.Purchases)
+
+local HttpService = game:GetService("HttpService")
+
+-- Robux purchase buttons are teal so they're never mistaken for in-game money.
+local ROBUX = Color3.fromRGB(0, 160, 110)
 
 local player = Players.LocalPlayer
 
@@ -122,6 +129,38 @@ function ShopController.start()
 				Remotes.BuyItem:FireServer(id)
 			end)
 		end
+		-- Robux boost, sold alongside the items.
+		local boostProduct = Products.developerProducts.money2x
+		local left = (player:GetAttribute("Boost2xSecondsLeft") :: number?) or 0
+		local status = if left > 0 then ("Active: %d min left — buying adds an hour"):format(math.ceil(left / 60)) else boostProduct.description
+		UiKit.row(panel.list, #Items.order + 1, boostProduct.name, status, Purchases.productPrice("money2x"), "Buy", ROBUX, true, function()
+			Purchases.promptProduct("money2x")
+		end)
+	end
+
+	local function renderSkins()
+		local owned = {}
+		local ok, list = pcall(HttpService.JSONDecode, HttpService, (player:GetAttribute("OwnedSkins") :: string?) or "[]")
+		for _, key in if ok then list else {} do
+			owned[key] = true
+		end
+		local equipped = (player:GetAttribute("EquippedSkin") :: string?) or ""
+		for i, skin in Products.skinSets do
+			if equipped == skin.key then
+				UiKit.row(panel.list, i, skin.name, skin.description, "Equipped", "Unequip", UiKit.colors.action, true, function()
+					Remotes.EquipSkin:FireServer("")
+				end)
+			elseif owned[skin.key] then
+				UiKit.row(panel.list, i, skin.name, skin.description, "Owned", "Equip", UiKit.colors.go, true, function()
+					Remotes.EquipSkin:FireServer(skin.key)
+				end)
+			else
+				UiKit.row(panel.list, i, skin.name, skin.description, Purchases.priceText(skin.passId, Enum.InfoType.GamePass), "Buy", ROBUX, true, function()
+					Purchases.promptSkin(skin)
+				end)
+			end
+		end
+		UiKit.emptyNote(panel.list, #Products.skinSets + 1, "Skins are cosmetic only. Their looks arrive with the art update.")
 	end
 
 	local function render()
@@ -135,7 +174,7 @@ function ShopController.start()
 		elseif tab == "Items" then
 			renderItems()
 		else
-			UiKit.emptyNote(panel.list, 1, "Upgrade skins arrive with the store (Milestone 9).")
+			renderSkins()
 		end
 	end
 
@@ -163,7 +202,15 @@ function ShopController.start()
 		end)
 	end)
 
-	local watched = { "Money", "HighestTier" }
+	-- Look up Robux prices once in the background so rendering never waits on them.
+	task.spawn(function()
+		Purchases.productPrice("money2x")
+		for _, skin in Products.skinSets do
+			Purchases.priceText(skin.passId, Enum.InfoType.GamePass)
+		end
+	end)
+
+	local watched = { "Money", "HighestTier", "OwnedSkins", "EquippedSkin" }
 	for _, id in UPGRADE_ORDER do
 		table.insert(watched, "Upgrade_" .. id)
 	end

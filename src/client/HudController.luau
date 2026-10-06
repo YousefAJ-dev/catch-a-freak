@@ -112,20 +112,46 @@ local function buildGui()
 	})
 	corner(money, 10)
 
-	return fill, text, warning, stroke, money
+	-- 2x Money timer, under the money display while the boost is active.
+	local boost = make("TextLabel", {
+		Name = "Boost",
+		Position = UDim2.fromOffset(16, 58),
+		Size = UDim2.fromOffset(200, 28),
+		BackgroundColor3 = Color3.fromRGB(255, 200, 40),
+		Font = Enum.Font.GothamBlack,
+		TextSize = 16,
+		TextColor3 = Color3.fromRGB(40, 30, 0),
+		Text = "",
+		Visible = false,
+		Parent = gui,
+	})
+	corner(boost, 8)
+
+	return fill, text, warning, stroke, money, boost
 end
 
 function HudController.start()
 	-- The custom bar replaces Roblox's default health display.
 	pcall(StarterGui.SetCoreGuiEnabled, StarterGui, Enum.CoreGuiType.Health, false)
 
-	local fill, text, warning, stroke, money = buildGui()
+	local fill, text, warning, stroke, money, boost = buildGui()
 
 	local function updateMoney()
 		money.Text = Format.money((player:GetAttribute("Money") :: number?) or 0)
 	end
 	player:GetAttributeChangedSignal("Money"):Connect(updateMoney)
 	updateMoney()
+
+	local function updateBoost()
+		local seconds = (player:GetAttribute("Boost2xSecondsLeft") :: number?) or 0
+		boost.Visible = seconds > 0
+		if seconds > 0 then
+			local h, m, s = seconds // 3600, (seconds % 3600) // 60, seconds % 60
+			boost.Text = if h > 0 then ("2x MONEY  %d:%02d:%02d"):format(h, m, s) else ("2x MONEY  %d:%02d"):format(m, s)
+		end
+	end
+	player:GetAttributeChangedSignal("Boost2xSecondsLeft"):Connect(updateBoost)
+	updateBoost()
 
 	local function updateWarning()
 		local tier = (player:GetAttribute("ZoneTier") :: number?) or 0

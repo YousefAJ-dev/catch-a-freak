@@ -13,6 +13,15 @@ local SHOW_FOR = 2.5
 
 local NotifyController = {}
 
+-- Set by start(); lets other client code show a notice without the server.
+local showMessage: ((string) -> ())? = nil
+
+function NotifyController.show(message: string)
+	if showMessage then
+		showMessage(message)
+	end
+end
+
 function NotifyController.start()
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "Notify"
@@ -34,7 +43,7 @@ function NotifyController.start()
 	gui.Parent = player:WaitForChild("PlayerGui")
 
 	local shownAt = 0
-	Remotes.Notify.OnClientEvent:Connect(function(message: string)
+	local function show(message: string)
 		label.Text = message
 		label.TextTransparency = 0
 		label.BackgroundTransparency = 0.2
@@ -45,7 +54,9 @@ function NotifyController.start()
 				TweenService:Create(label, TweenInfo.new(0.4), { TextTransparency = 1, BackgroundTransparency = 1 }):Play()
 			end
 		end)
-	end)
+	end
+	showMessage = show
+	Remotes.Notify.OnClientEvent:Connect(show)
 end
 
 return NotifyController

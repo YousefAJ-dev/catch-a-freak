@@ -100,6 +100,12 @@ function Formulas.incomePerSecond(tier: number, rarityId: string, effects: { any
 	return Tiers[tier].baseIncome * Rarities.byId[rarityId].incomeMultiplier * Formulas.effectsMultiplier(effects)
 end
 
+-- Multiplier on farm income and sell payouts while 2x Money is active.
+-- Never applied to offline earnings.
+function Formulas.moneyMultiplier(boostSecondsLeft: number): number
+	return if boostSecondsLeft > 0 then 2 else 1
+end
+
 function Formulas.sellPrice(tier: number, rarityId: string, effects: { any }?): number
 	return Economy.sellIncomeSeconds * Formulas.incomePerSecond(tier, rarityId, effects)
 end
