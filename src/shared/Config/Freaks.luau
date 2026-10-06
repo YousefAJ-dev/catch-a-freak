@@ -33,8 +33,8 @@ local species: { [number]: { Species } } = {
 
 return {
 	species = species,
-	-- Rings that hold freaks. Rings 2 and 3 join in Milestone 7.
-	spawnTiers = { 1 },
+	-- Rings that hold freaks.
+	spawnTiers = { 1, 2, 3 },
 	respawnDelay = 3, -- seconds after a freak is caught or expires
 	lifetimeMin = 120,
 	lifetimeMax = 240,

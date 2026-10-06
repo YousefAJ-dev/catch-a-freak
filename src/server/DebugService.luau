@@ -2,7 +2,8 @@
 -- Studio-only playtest commands, typed in chat (DESIGN.md section 12):
 --   /tier <1-3>               set your highest unlocked tier
 --   /upgrade <id> <level>     set an upgrade level (shoes, hazmat, grip, farmCapacity, offlineCapacity)
---   /spawnfreak <tier> <rarity>  spawn a freak in front of you, e.g. /spawnfreak 2 Epic
+--   /spawnfreak <tier> <rarity> [species]  spawn a freak in front of you,
+--                             e.g. /spawnfreak 2 Epic or /spawnfreak 1 Rare Glowbug
 --   /money <amount>           set your money
 --   /item <id> <count>        set an item count (netLauncher, bearTrap)
 --   /offline <seconds>        pay out offline earnings as if you'd been away that long
@@ -86,13 +87,13 @@ local commands: { Command } = {
 	},
 	{
 		alias = "/spawnfreak",
-		usage = "/spawnfreak <tier> <rarity>",
+		usage = "/spawnfreak <tier> <rarity> [species]",
 		run = function(player, args)
 			local tier, rarity = tonumber(args[1]), args[2]
 			assert(tier and rarity, "expected a tier and a rarity")
 			-- Accept any capitalisation: "epic" -> "Epic".
 			rarity = rarity:sub(1, 1):upper() .. rarity:sub(2):lower()
-			return "spawned " .. FreakService.spawnNear(player, tier, rarity)
+			return "spawned " .. FreakService.spawnNear(player, tier, rarity, args[3])
 		end,
 	},
 }

@@ -38,7 +38,7 @@ local function isNear(player: Player, counter: BasePart): boolean
 		return false
 	end
 	local offset = root.Position - counter.Position
-	return Vector3.new(offset.X, 0, offset.Z).Magnitude <= Economy.sellRange
+	return Vector3.new(offset.X, 0, offset.Z).Magnitude <= Economy.counterRange
 end
 
 -- Selling ------------------------------------------------------------------

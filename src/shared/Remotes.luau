@@ -16,6 +16,7 @@ local EVENTS = {
 	"BuyItem", -- client -> server: (itemId: string) buy one item
 	"UseNetLauncher", -- client -> server: (target: Vector3) fire a net at a point
 	"PlaceBearTrap", -- client -> server: () set a trap where the player stands
+	"TurnIn", -- client -> server: (requirement: number, source: "carry" | "farm", index: number) gate turn-in
 	"NetImpact", -- server -> all clients: (position: Vector3, caught: number) net visual
 	"Popup", -- server -> client: (title: string, body: string) message the player dismisses
 }

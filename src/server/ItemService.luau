@@ -15,6 +15,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage.Shared
 local Formulas = require(Shared.Formulas)
+local Format = require(Shared.Format)
 local Remotes = require(Shared.Remotes)
 local Items = require(Shared.Config.Items)
 local World = require(Shared.Config.World)
@@ -199,8 +200,7 @@ local function checkTraps()
 				local visual = buildTrapModel(Vector3.new(freak.position.X, World.groundY, freak.position.Z), true)
 				visual.Name = "PinnedTrap_" .. freak.id
 				pinVisuals[freak.id] = { model = visual, untilTime = os.clock() + trap.pinDuration }
-				local article = if freak.rarity:match("^[AEIOU]") then "an" else "a"
-				notify(player, ("Your trap pinned %s %s %s — grab it fast!"):format(article, freak.rarity, freak.species))
+				notify(player, ("Your trap pinned %s %s %s — grab it fast!"):format(Format.article(freak.rarity), freak.rarity, freak.species))
 				break
 			end
 		end

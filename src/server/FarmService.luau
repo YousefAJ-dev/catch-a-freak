@@ -337,6 +337,28 @@ local function onPickUpFreak(player: Player, pad: any)
 	replicateFarm(player, plot)
 end
 
+-- The freak in one of the player's incubators, or nil (for gate turn-ins).
+function FarmService.getFreak(player: Player, pad: number): FarmFreak?
+	local record = recordAt(farmOf(player), pad)
+	return record
+end
+
+-- Takes a freak out of an incubator for good (consumed by a gate turn-in).
+-- Returns the removed record, or nil if the incubator was empty.
+function FarmService.removeFreak(player: Player, pad: number): FarmFreak?
+	local plot = plotOf[player]
+	local farm = farmOf(player)
+	local record, index = recordAt(farm, pad)
+	if not (plot and record and index) then
+		return nil
+	end
+	table.remove(farm, index)
+	hideFreak(plot, pad)
+	refreshIncubators(plot)
+	replicateFarm(player, plot)
+	return record
+end
+
 local function collect(player: Player, plot: Plot)
 	local data = DataService.get(player)
 	if not data or data.uncollected <= 0 then

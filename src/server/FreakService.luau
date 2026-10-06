@@ -295,7 +295,7 @@ end
 -- Studio debug: spawns a freak of the given tier and rarity a few studs in
 -- front of the player. It wanders inside whichever zone it spawned in and is
 -- not part of any ring's population.
-function FreakService.spawnNear(player: Player, tier: number, rarityId: string): string
+function FreakService.spawnNear(player: Player, tier: number, rarityId: string, speciesName: string?): string
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	assert(root, "no character")
 	assert(FreakConfig.species[tier], "unknown tier " .. tostring(tier))
@@ -303,6 +303,15 @@ function FreakService.spawnNear(player: Player, tier: number, rarityId: string):
 	assert(rarity, "unknown rarity " .. tostring(rarityId))
 	local speciesList = FreakConfig.species[tier]
 	local species = speciesList[rng:NextInteger(1, #speciesList)]
+	if speciesName then
+		species = nil :: any
+		for _, candidate in speciesList do
+			if candidate.name:lower() == speciesName:lower() then
+				species = candidate
+			end
+		end
+		assert(species, ("no species %s in tier %d"):format(speciesName, tier))
+	end
 	local spot = root.Position + root.CFrame.LookVector * 6
 	local position = Vector3.new(spot.X, groundY(), spot.Z)
 	local freak = spawnFreak(species, rarity, Formulas.zoneFromPosition(position), position, false)

@@ -14,6 +14,11 @@ end
 
 local SUFFIXES = { { 1e12, "T" }, { 1e9, "B" }, { 1e6, "M" } }
 
+-- "a" or "an" for the word that follows: "an Uncommon", "a Rare".
+function Format.article(word: string): string
+	return if word:match("^[AEIOUaeiou]") then "an" else "a"
+end
+
 -- "$950", "$12,800", "$1.25M", "$34.8M"
 function Format.money(n: number): string
 	for _, s in SUFFIXES do

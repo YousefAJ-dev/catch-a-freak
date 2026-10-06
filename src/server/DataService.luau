@@ -8,13 +8,14 @@
 -- use DataService.waitFor where a record is required.
 --
 -- Fields the client needs to display are mirrored onto the Player as
--- attributes ("Money", "HighestTier", "Upgrade_<id>", "Item_<id>"). The record stays the
+-- attributes ("Money", "HighestTier", "Upgrade_<id>", "Item_<id>", "GateProgress"). The record stays the
 -- source of truth; never read those attributes back on the server as values.
 -- (Connecting to their change signals to learn that something changed is fine.)
 --
 -- Saved data must stay plain: no Instances, Vector3s or other userdata, no
 -- tables mixing number and string keys, and no arrays with gaps.
 
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -101,6 +102,7 @@ local function replicate(player: Player, data: Data)
 	for id, count in data.items do
 		player:SetAttribute("Item_" .. id, count)
 	end
+	player:SetAttribute("GateProgress", HttpService:JSONEncode(data.gateProgress))
 end
 
 local function dataOf(player: Player): Data
@@ -140,9 +142,21 @@ function DataService.setMoney(player: Player, amount: number)
 	replicate(player, data)
 end
 
+-- Changing tier starts the next gate from scratch.
 function DataService.setHighestTier(player: Player, tier: number)
 	local data = dataOf(player)
-	data.highestTier = math.clamp(math.floor(tier), 1, #Tiers)
+	local newTier = math.clamp(math.floor(tier), 1, #Tiers)
+	if newTier ~= data.highestTier then
+		data.gateProgress = { false, false }
+	end
+	data.highestTier = newTier
+	replicate(player, data)
+end
+
+-- Marks one requirement of the player's current gate as turned in.
+function DataService.markRequirement(player: Player, index: number)
+	local data = dataOf(player)
+	data.gateProgress[index] = true
 	replicate(player, data)
 end
 

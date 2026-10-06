@@ -4,6 +4,6 @@
 return {
 	-- sell price = this many seconds of the freak's income
 	sellIncomeSeconds = 30,
-	-- how close (studs) a player must be to the sell counter to sell
-	sellRange = 16,
+	-- how close (studs) a player must be to a shop, sell or gate counter to use it
+	counterRange = 16,
 }

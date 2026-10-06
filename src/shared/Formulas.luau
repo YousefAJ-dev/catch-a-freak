@@ -44,6 +44,21 @@ function Formulas.rollRarity(roll: number): string
 	return Rarities.list[#Rarities.list].id
 end
 
+-- A rarity's position in the roll order: Common = 1 ... Legendary = 5.
+function Formulas.rarityRank(rarityId: string): number
+	for i, rarity in Rarities.list do
+		if rarity.id == rarityId then
+			return i
+		end
+	end
+	error("unknown rarity " .. tostring(rarityId))
+end
+
+-- Whether a freak meets a gate requirement: same species, required rarity or higher.
+function Formulas.meetsRequirement(freak: { species: string, rarity: string }, requirement: { species: string, rarity: string }): boolean
+	return freak.species == requirement.species and Formulas.rarityRank(freak.rarity) >= Formulas.rarityRank(requirement.rarity)
+end
+
 -- Seconds a player must hold the grab input on a freak.
 function Formulas.holdTime(tier: number, rarityId: string, gripLevel: number): number
 	local reduction = Upgrades.grip.effectPerLevel * gripLevel
