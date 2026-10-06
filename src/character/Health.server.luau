@@ -1,0 +1,3 @@
+-- Intentionally empty. A script named "Health" in StarterCharacterScripts
+-- replaces Roblox's default one, which disables its built-in regeneration.
+-- RadiationService on the server owns health instead.

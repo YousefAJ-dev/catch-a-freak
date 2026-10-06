@@ -86,11 +86,22 @@ Safe zone = shop + inner ring. Health regenerates at 10 HP/sec there. Roblox's d
 
 Damage per second while in a ring:
 
-`damage = tier.radiationDps × (1 − 0.08 × hazmatLevel)`
+`damage = tier.radiationDps ÷ (1 + 1.7 × hazmatLevel)`
+
+Each Hazmat level adds to the divisor, so the first levels cut damage sharply and later ones taper off. With no suit, 100 HP lasts 12.5 seconds in Ring 1: enough to grab one or two freaks near the barrier and get back.
 
 The server applies it once per second based on the player's distance from the center. The client only displays it.
 
 Tuning target: with the upgrades a player can afford when a ring unlocks (about level 3 for Ring 2, level 6 for Ring 3), they should get roughly 20–30 seconds inside the new ring after crossing the earlier ones and saving enough health to get back.
+
+Current numbers against that target (100 HP, walk speed 16 + Shoes level, Shoes assumed level with Hazmat):
+
+| Situation | Seconds |
+|-----------|---------|
+| Ring 1, no suit | 12.5 |
+| Ring 1, Hazmat 1 | 34 |
+| Inside Ring 2 at Hazmat 3, after crossing Ring 1 both ways | ~28 |
+| Inside Ring 3 at Hazmat 6, after crossing Rings 1 and 2 both ways | ~21 |
 
 ### Death
 
@@ -109,9 +120,9 @@ A freak is defined by species, tier, and rarity.
 
 | Tier | Ring | Population | Radiation DPS | Base income ($/sec) | Base hold (sec) | Freak speed |
 |------|------|------------|---------------|---------------------|-----------------|-------------|
-| 1 | Ring 1 | 70 | 1.5 | 1 | 1.0 | 6 |
-| 2 | Ring 2 | 80 | 3 | 10 | 2.0 | 9 |
-| 3 | Ring 3 | 90 | 6 | 100 | 3.5 | 12 |
+| 1 | Ring 1 | 70 | 8 | 1 | 1.0 | 6 |
+| 2 | Ring 2 | 80 | 16 | 10 | 2.0 | 9 |
+| 3 | Ring 3 | 90 | 32 | 100 | 3.5 | 12 |
 
 ### Rarities
 
@@ -241,7 +252,7 @@ Cost of the next level = `baseCost × growth ^ currentLevel`, rounded to the nea
 | Upgrade | Effect per level | Max level | Base cost | Growth | Cost of level 5 | Cost of last level |
 |---------|------------------|-----------|-----------|--------|-----------------|--------------------|
 | Shoes | +1 walk speed | 10 | 50 | ×4 | 12,800 | 13.1M |
-| Hazmat Suit | −8% radiation damage | 10 | 75 | ×4 | 19,200 | 19.7M |
+| Hazmat Suit | Radiation damage ÷ (1 + 1.7 × level) | 10 | 75 | ×4 | 19,200 | 19.7M |
 | Stronger Grip | −7% grab hold time | 10 | 60 | ×4 | 15,360 | 15.7M |
 | Farm Capacity | Unlocks the next incubator | 13 | 150 | ×2.8 | 9,220 | 34.8M |
 | Offline Capacity | +1 hour offline limit | 7 | 300 | ×4 | 76,800 | 1.2M |
@@ -438,7 +449,7 @@ Build in this order. Do not start a milestone until the previous one passes its 
 | # | Milestone | Done when |
 |---|-----------|-----------|
 | 1 | Greybox map and farm plots | If an earlier greybox exists at different dimensions, rebuild it to these. The shop, safe-zone barrier, both tier walls, and outer boundary exist at the section 2 radii. Each wall has 4 doors at N/E/S/W. All 8 farm plots exist at the section 6 positions and size (60×60). Each plot has a lab floor, a center aisle, 16 glass incubators in a 4×4 grid numbered front row first, a collection pad in front, a value sign, and an owner sign. Incubators 1–3 look unlocked and 4–16 look locked (greyed out). A player can walk from spawn straight down each N/E/S/W lane, through the barrier door, into Ring 1 without crossing a plot. The Tier 2 and Tier 3 doors block the player. No wall can be jumped or climbed. A top-down screenshot shows no plots overlapping each other, the shop, or the barrier. |
-| 2 | Zones and radiation | Zone is detected from distance to center. Health drains at 1.5/sec in Ring 1 and regenerates in the safe zone. Dying respawns the player at the shop. HUD shows health and a radiation warning. The debug command to set highest tier works: with tier 3 set, the player can pass both walls and takes 3/sec in Ring 2 and 6/sec in Ring 3. A player found in a ring above their tier is sent back to the shop. |
+| 2 | Zones and radiation | Zone is detected from distance to center. Health drains at 8/sec in Ring 1 and regenerates in the safe zone. Dying respawns the player at the shop. HUD shows health and a radiation warning. The debug command to set highest tier works: with tier 3 set, the player can pass both walls and takes 16/sec in Ring 2 and 32/sec in Ring 3, divided by (1 + 1.7 × Hazmat level). A player found in a ring above their tier is sent back to the shop. |
 | 3 | Freaks and grabbing | Ring 1 holds 70 wandering freaks. Over 1,000 simulated spawns the rarity split is within 2 points of 50/30/14/5/1. Rarity colors and Epic/Legendary beams show. Freaks expire and are replaced. Holding the prompt fills the grab bar; hold times match the section 5 table. Caught freaks fill the carry bar up to 9, and the 10th grab is refused. Dying clears the carry bar. The server stays smooth with all 70 moving. |
 | 4 | Money loop | Money shows on the HUD. The sell panel sells one freak or all, at 30× income. Placing a freak puts it in the lowest-numbered empty unlocked incubator, scaled to fit, with the incubator's floor light in its rarity color. Placing is refused when all unlocked incubators are full. The pool grows every second by the right amount, the value sign shows the pool and income per second, the owner sign shows the player's name, and standing on the collection pad collects it. Picking a freak back up empties its incubator. |
 | 5 | Shop | All 5 upgrades can be bought, cost `base × growth^level`, stop at max level, and change what they say they change. Each Farm Capacity level unlocks the next incubator, stopping at incubator 16. Net Launcher catches up to 3 Common/Uncommon/Rare freaks and ignores Epic/Legendary. Bear Trap pins one freak and makes it a 0.5-second grab for its owner. |

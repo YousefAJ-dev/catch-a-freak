@@ -1,0 +1,71 @@
+--!strict
+-- Studio-only playtest commands, typed in chat (DESIGN.md section 12):
+--   /tier <1-3>               set your highest unlocked tier
+--   /upgrade <id> <level>     set an upgrade level (shoes, hazmat, grip, farmCapacity, offlineCapacity)
+-- Results print to the Output window. More commands (money, spawn freak) arrive
+-- with the systems they control.
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TextChatService = game:GetService("TextChatService")
+
+local DataService = require(script.Parent.DataService)
+
+type Command = {
+	alias: string,
+	usage: string,
+	run: (player: Player, args: { string }) -> string,
+}
+
+local commands: { Command } = {
+	{
+		alias = "/tier",
+		usage = "/tier <1-3>",
+		run = function(player, args)
+			local tier = tonumber(args[1])
+			assert(tier, "missing tier number")
+			DataService.setHighestTier(player, tier)
+			return ("highest tier = %d"):format(player:GetAttribute("HighestTier"))
+		end,
+	},
+	{
+		alias = "/upgrade",
+		usage = "/upgrade <id> <level>",
+		run = function(player, args)
+			local id, level = args[1], tonumber(args[2])
+			assert(id and level, "expected an upgrade id and a level")
+			DataService.setUpgradeLevel(player, id, level)
+			return ("%s = %d"):format(id, player:GetAttribute("Upgrade_" .. id))
+		end,
+	},
+}
+
+local DebugService = {}
+
+function DebugService.start()
+	if not RunService:IsStudio() then
+		return
+	end
+	for _, command in commands do
+		local chatCommand = Instance.new("TextChatCommand")
+		chatCommand.Name = "Debug" .. command.alias
+		chatCommand.PrimaryAlias = command.alias
+		chatCommand.Triggered:Connect(function(source: TextSource, text: string)
+			local player = Players:GetPlayerByUserId(source.UserId)
+			if not player then
+				return
+			end
+			local args = string.split(text, " ")
+			table.remove(args, 1)
+			local ok, result = pcall(command.run, player, args)
+			if ok then
+				print(("[Debug] %s: %s"):format(player.Name, result))
+			else
+				warn(("[Debug] %s failed (%s). Usage: %s"):format(command.alias, tostring(result), command.usage))
+			end
+		end)
+		chatCommand.Parent = TextChatService
+	end
+end
+
+return DebugService
