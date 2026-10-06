@@ -172,7 +172,7 @@ Names are placeholders. Rename freely. Species within a tier have identical stat
 | Tier | Species A | Species B | Species C |
 |------|-----------|-----------|-----------|
 | 1 | Glowbug | Twitcher | Sludgelet |
-| 2 | Tri-Eye | Rustback | Fizzler |
+| 2 | Tri-Eye | Rustback | Nightmare |
 | 3 | Gloomhound | Splitjaw | Wobbler |
 | 4 | Voidmoth | Gnashling | Bloatworm |
 | 5 | Hexwing | Grimjaw | Pulsar |
@@ -312,7 +312,7 @@ Each gate asks for 2 specific freaks. A freak counts if it is the required speci
 | Gate | Unlocks | Requirement 1 | Requirement 2 |
 |------|---------|---------------|---------------|
 | 1 | Tier 2 (Ring 2) | Uncommon Twitcher | Rare Glowbug |
-| 2 | Tier 3 (Ring 3) | Rare Rustback | Epic Fizzler |
+| 2 | Tier 3 (Ring 3) | Rare Rustback | Epic Nightmare |
 | 3 | Tier 4 (Ring 4) | Rare Gloomhound | Epic Wobbler |
 | 4 | Tier 5 (Ring 5) | Rare Gnashling | Epic Bloatworm |
 

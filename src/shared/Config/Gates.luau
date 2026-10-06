@@ -18,7 +18,7 @@ local Gates: { Gate } = {
 		unlocksTier = 3,
 		requirements = {
 			{ species = "Rustback", rarity = "Rare" },
-			{ species = "Fizzler", rarity = "Epic" },
+			{ species = "Nightmare", rarity = "Epic" },
 		},
 	},
 	{

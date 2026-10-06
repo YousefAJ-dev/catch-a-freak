@@ -23,6 +23,7 @@ local RunService = game:GetService("RunService")
 
 local Upgrades = require(ReplicatedStorage.Shared.Config.Upgrades)
 local Tiers = require(ReplicatedStorage.Shared.Config.Tiers)
+local FreakConfig = require(ReplicatedStorage.Shared.Config.Freaks)
 local ProfileStore = require(script.Parent.Vendor.ProfileStore)
 
 local STORE_NAME = "PlayerData"
@@ -260,6 +261,9 @@ local function onPlayerAdded(player: Player)
 
 	profile:AddUserId(player.UserId) -- GDPR: lets Roblox find this player's data
 	profile:Reconcile() -- fills in fields added to the template since the last save
+	for _, record in profile.Data.farm do
+		record.species = FreakConfig.renamed[record.species] or record.species
+	end
 	profile.OnSessionEnd:Connect(function()
 		profiles[player] = nil
 		previousLastSeen[player] = nil
