@@ -3,6 +3,7 @@
 
 local DoorController = require(script.DoorController)
 local HudController = require(script.HudController)
+local BiomeController = require(script.BiomeController)
 local FreakRenderer = require(script.FreakRenderer)
 local OutlineController = require(script.OutlineController)
 local GrabController = require(script.GrabController)
@@ -21,6 +22,7 @@ local ReviveController = require(script.ReviveController)
 
 DoorController.start()
 HudController.start()
+BiomeController.start()
 FreakRenderer.start()
 OutlineController.start()
 GrabController.start()

@@ -1,10 +1,11 @@
 --[[
-	Greybox map builder (Milestone 1).
+	Map builder (Milestone 1; ground looks from Config/Biomes since Milestone 10).
 
 	Not a game script: run it in Studio's edit DataModel (via the Studio MCP
 	execute_luau tool or the command bar) after Rojo has synced
 	ReplicatedStorage.Shared.Config.World. It deletes and rebuilds Workspace.Map
-	from the config, so re-run it whenever World.luau changes. Save the place
+	from the config, so re-run it whenever World.luau changes, then run
+	tools/BuildBiomes.luau to put the biome props back. Save the place
 	afterwards to keep the result.
 ]]
 
@@ -56,7 +57,7 @@ local function label(parent: Instance, text: string, offsetY: number, color: Col
 end
 
 -- A flat disc whose top surface sits at topY.
-local function disc(name: string, radius: number, topY: number, color: Color3, parent: Instance)
+local function disc(name: string, radius: number, topY: number, color: Color3, material: Enum.Material, parent: Instance)
 	local thickness = 1
 	part({
 		Name = name,
@@ -64,7 +65,7 @@ local function disc(name: string, radius: number, topY: number, color: Color3, p
 		Size = Vector3.new(thickness, radius * 2, radius * 2),
 		CFrame = CFrame.new(World.center + Vector3.new(0, topY - thickness / 2, 0)) * CFrame.Angles(0, 0, math.rad(90)),
 		Color = color,
-		Material = Enum.Material.Concrete,
+		Material = material,
 		Parent = parent,
 	})
 end
@@ -78,27 +79,21 @@ local function chordSlab(radius: number, a1: number, a2: number, height: number,
 	return CFrame.lookAt(mid, mid + (p2 - p1).Unit), Vector3.new(thickness, height, length)
 end
 
-local ZONE_COLORS = {
-	Shop = Color3.fromRGB(200, 200, 200),
-	InnerRing = Color3.fromRGB(96, 140, 80),
-	Ring1 = Color3.fromRGB(150, 160, 70),
-	Ring2 = Color3.fromRGB(150, 110, 60),
-	Ring3 = Color3.fromRGB(90, 70, 110),
-	Ring4 = Color3.fromRGB(60, 85, 105),
-	Ring5 = Color3.fromRGB(110, 55, 50),
-}
+-- The safe zone's ground: the lab floor, with a steel-plate shop floor on top.
+-- The rings' ground is terrain, built by tools/BuildBiomes.luau.
+local biomesModule = game:GetService("ReplicatedStorage").Shared.Config.Biomes:Clone()
+local Biomes = require(biomesModule) :: any
+biomesModule:Destroy()
 
 local function buildGround(map: Instance)
 	local folder = Instance.new("Folder")
 	folder.Name = "Ground"
 	folder.Parent = map
-	-- Outermost first, each inner disc slightly higher so the tops never z-fight.
-	local zones = World.zones
-	for i = #zones, 1, -1 do
-		local zone = zones[i]
-		local topY = GROUND_Y + 0.02 * (#zones - i + 1)
-		disc(zone.name, zone.outerRadius, topY, ZONE_COLORS[zone.name] or Color3.new(0.5, 0.5, 0.5), folder)
-	end
+	-- Tops sit just above ground level (and the terrain), the shop's above the
+	-- inner ring's so they never z-fight; the plots and shop are built on them.
+	local lab = Biomes[0].ground
+	disc("InnerRing", World.safeRadius, GROUND_Y + 0.02 * (#World.zones - 1), lab.color, lab.material, folder)
+	disc("Shop", World.zones[1].outerRadius, GROUND_Y + 0.02 * #World.zones, Color3.fromRGB(120, 126, 130), Enum.Material.DiamondPlate, folder)
 end
 
 local function buildWall(map: Instance, wall: any)

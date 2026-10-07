@@ -69,6 +69,21 @@ Per-player doors: the door is solid for players who have not unlocked the tier a
 
 Safe zone = shop + inner ring. Health regenerates at 10 HP/sec there. Roblox's default health regeneration is disabled.
 
+Biomes (looks in `Config/Biomes.luau`, built by `tools/BuildBiomes.luau`):
+
+| Zone | Biome | Ground | Walls | Props |
+|------|-------|--------|-------|-------|
+| Safe zone | Radioactive lab | Concrete, steel-plate shop floor | Force-field barrier | Hazard stripes, glowing vats piped into the barrier |
+| Ring 1 | Dry field | Dry grass, dirt patches | Wooden palisade | Dead trees, fences, hay bales, scarecrows, rocks, bushes |
+| Ring 2 | Wasteland | Sand, rock patches | Rusted sheet metal | Rock piles, car wrecks, leaking barrels, tires, broken concrete |
+| Ring 3 | Radioactive swamp | Mud, moss patches | Mossy stone | Ankle-deep toxic pools (walk-through), swamp trees, reeds, logs, glowing mushrooms |
+| Ring 4 | Cavern | Slate, basalt patches | Cave rock | Rock masses along the walls, arches over the lanes, stalagmites, glowing crystals and mushrooms |
+| Ring 5 | Chemical plant | Asphalt, pavement patches | Metal panels | Tanks, smokestacks, pipe runs, containers, glowing vats, barrels |
+
+- The rings' ground is flat terrain exactly at ground level (freaks stand at a fixed height), with low banks sloping up against the walls. Freaks stay 16 studs from walls, clear of the banks.
+- Freaks walk in straight lines through props, so big props stand along the walls and the open middle of each ring stays mostly clear. Nothing is placed in the N/E/S/W lanes.
+- Each zone has its own lighting (time of day, haze, color grading), switched on the client when the player enters it. Daytime zones keep the sun high so the 120-stud walls don't shade the ring floors.
+
 ---
 
 ## 3. Core loop
@@ -167,19 +182,19 @@ Income per second by tier and rarity:
 
 ### Species
 
-Names are placeholders. Rename freely. Species within a tier have identical stats. They differ in look (each species has its own body shape and color) and in which gate asks for them.
+Names are placeholders. Rename freely. Species within a tier have identical stats. They differ in look (each is its own 3D model, suited to its ring's biome) and in which gate asks for them.
 
 | Tier | Species A | Species B | Species C |
 |------|-----------|-----------|-----------|
-| 1 | Glowbug | Twitcher | Sludgelet |
-| 2 | Tri-Eye | Rustback | Nightmare |
-| 3 | Gloomhound | Splitjaw | Wobbler |
-| 4 | Voidmoth | Gnashling | Bloatworm |
-| 5 | Hexwing | Grimjaw | Pulsar |
+| 1 (dry field) | Glowbug | Twitcher | Gnashling |
+| 2 (wasteland) | Rustback | Gloomhound | Splitjaw |
+| 3 (radioactive swamp) | Sludgelet | Hexwing | Bloatworm |
+| 4 (cavern) | Nightmare | Voidmoth | Tri-Eye |
+| 5 (chemical plant) | Pulsar | Wobbler | Grimjaw |
 
 ### Spawning
 
-- Each ring keeps its population constant. When a freak is caught or expires, a new one spawns 3 seconds later at a random point in the ring, at least 10 studs from any wall.
+- Each ring keeps its population constant. When a freak is caught or expires, a new one spawns 3 seconds later at a random point in the ring, at least 16 studs from any wall (clear of the terrain banks along the walls).
 - Each spawn picks a species at random (equal odds) and rolls rarity from the table above.
 - **Lifetime:** every freak expires 120–240 seconds after spawning (random per freak) and is replaced by a fresh roll. Without this, players take the rare ones and leave the Commons, nothing respawns, and the ring fills up with Commons. A freak that is being grabbed or is pinned by a trap does not expire.
 - Rarity is shown by an outline in the rarity color, on every rarity including Common. Only the nearest 6 freaks to the player are outlined at a time (Roblox renders at most ~31 outlines at once, and this keeps the view uncluttered), so a rare is something you spot up close rather than from across the ring. The body stays in its species color.
@@ -312,9 +327,9 @@ Each gate asks for 2 specific freaks. A freak counts if it is the required speci
 | Gate | Unlocks | Requirement 1 | Requirement 2 |
 |------|---------|---------------|---------------|
 | 1 | Tier 2 (Ring 2) | Uncommon Twitcher | Rare Glowbug |
-| 2 | Tier 3 (Ring 3) | Rare Rustback | Epic Nightmare |
-| 3 | Tier 4 (Ring 4) | Rare Gloomhound | Epic Wobbler |
-| 4 | Tier 5 (Ring 5) | Rare Gnashling | Epic Bloatworm |
+| 2 | Tier 3 (Ring 3) | Rare Rustback | Epic Gloomhound |
+| 3 | Tier 4 (Ring 4) | Rare Sludgelet | Epic Hexwing |
+| 4 | Tier 5 (Ring 5) | Rare Tri-Eye | Epic Nightmare |
 
 - The gate panel always shows the current requirements and which are done.
 - Requirements can be turned in one at a time. Progress is saved.
@@ -417,6 +432,7 @@ src/
       Gates.luau         section 8 table
       Wheel.luau         odds
       Products.luau      product and game pass IDs
+      Biomes.luau        each zone's ground, walls and lighting
     Formulas.luau        income, sellPrice, holdTime, radiation, upgradeCost, itemPrice, zoneFromPosition
     Remotes.luau         creates and exposes all RemoteEvents/Functions
   server/            -> ServerScriptService
@@ -435,8 +451,14 @@ src/
   client/            -> StarterPlayerScripts
     FreakRenderer.luau   moves freak models along their waypoints
     DoorController.luau  per-player door state
+    BiomeController.luau per-zone lighting
     one controller per UI screen in section 11
+tools/               -> ServerStorage.Tools (Studio-only builders, never run in game)
+  BuildMap.luau        walls, doors, shop, farm plots, lab floor
+  BuildBiomes.luau     terrain, wall cladding, biome props
 ```
+
+Run a tool from the edit DataModel with `require(game.ServerStorage.Tools.<Name>:Clone())`, then save the place.
 
 All formulas live in `Formulas.luau` so the client can display the same numbers the server enforces.
 

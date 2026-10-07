@@ -18,21 +18,21 @@ local Gates: { Gate } = {
 		unlocksTier = 3,
 		requirements = {
 			{ species = "Rustback", rarity = "Rare" },
-			{ species = "Nightmare", rarity = "Epic" },
+			{ species = "Gloomhound", rarity = "Epic" },
 		},
 	},
 	{
 		unlocksTier = 4,
 		requirements = {
-			{ species = "Gloomhound", rarity = "Rare" },
-			{ species = "Wobbler", rarity = "Epic" },
+			{ species = "Sludgelet", rarity = "Rare" },
+			{ species = "Hexwing", rarity = "Epic" },
 		},
 	},
 	{
 		unlocksTier = 5,
 		requirements = {
-			{ species = "Gnashling", rarity = "Rare" },
-			{ species = "Bloatworm", rarity = "Epic" },
+			{ species = "Tri-Eye", rarity = "Rare" },
+			{ species = "Nightmare", rarity = "Epic" },
 		},
 	},
 }
