@@ -7,7 +7,16 @@
 -- the /buy debug command, which runs the real receipt handler.
 
 export type DevProduct = { key: string, id: number, name: string, description: string }
-export type SkinSet = { key: string, passId: number, name: string, description: string }
+-- How a skin set dresses the character (CharacterService): the suit covers
+-- torso, arms, legs and hands; boots cover the feet; optional goggles over
+-- the eyes and a glow from the chest.
+export type SkinLook = {
+	suit: { color: Color3, material: Enum.Material },
+	boots: { color: Color3, material: Enum.Material },
+	goggles: Color3?,
+	glow: Color3?,
+}
+export type SkinSet = { key: string, passId: number, name: string, description: string, look: SkinLook }
 
 local developerProducts: { [string]: DevProduct } = {
 	money2x = {
@@ -32,9 +41,41 @@ local developerProducts: { [string]: DevProduct } = {
 
 -- Cosmetic only; the looks themselves arrive with the art in Milestone 10.
 local skinSets: { SkinSet } = {
-	{ key = "labCoat", passId = -101, name = "Lab Coat Set", description = "White coat, safety goggles, polished boots" },
-	{ key = "toxic", passId = -102, name = "Toxic Set", description = "Glowing green suit and boots" },
-	{ key = "gold", passId = -103, name = "Gold Set", description = "Gilded hazmat suit and shoes" },
+	{
+		key = "labCoat",
+		passId = -101,
+		name = "Lab Coat Set",
+		description = "White coat, safety goggles, polished boots",
+		look = {
+			suit = { color = Color3.fromRGB(240, 242, 245), material = Enum.Material.Fabric },
+			boots = { color = Color3.fromRGB(30, 30, 34), material = Enum.Material.SmoothPlastic },
+			goggles = Color3.fromRGB(120, 220, 255),
+		},
+	},
+	{
+		key = "toxic",
+		passId = -102,
+		name = "Toxic Set",
+		description = "Glowing green suit and boots",
+		look = {
+			suit = { color = Color3.fromRGB(110, 230, 60), material = Enum.Material.SmoothPlastic },
+			boots = { color = Color3.fromRGB(40, 70, 30), material = Enum.Material.Rubber },
+			goggles = Color3.fromRGB(200, 255, 120),
+			glow = Color3.fromRGB(130, 255, 70),
+		},
+	},
+	{
+		key = "gold",
+		passId = -103,
+		name = "Gold Set",
+		description = "Gilded hazmat suit and shoes",
+		look = {
+			suit = { color = Color3.fromRGB(235, 185, 60), material = Enum.Material.Foil },
+			boots = { color = Color3.fromRGB(190, 140, 40), material = Enum.Material.Foil },
+			goggles = Color3.fromRGB(255, 230, 150),
+			glow = Color3.fromRGB(255, 210, 90),
+		},
+	},
 }
 
 return {

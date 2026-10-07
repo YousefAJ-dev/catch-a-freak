@@ -14,6 +14,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Formulas = require(ReplicatedStorage.Shared.Formulas)
 local DashConfig = require(ReplicatedStorage.Shared.Config.Dash)
 local UiKit = require(script.Parent.UiKit)
+local Sfx = require(script.Parent.Sfx)
 
 local player = Players.LocalPlayer
 
@@ -44,6 +45,7 @@ local function dash()
 	end
 	localReadyAt = now + Formulas.dashCooldown((player:GetAttribute("Upgrade_dashRecharge") :: number?) or 0)
 	Remotes.Dash:FireServer()
+	Sfx.play("dash")
 
 	-- Direction: where the player is steering, or where they face if standing still.
 	local direction = humanoid.MoveDirection

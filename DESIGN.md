@@ -365,7 +365,7 @@ Build this last, after the loop is fun. Product and Game Pass IDs live in `Confi
 |---------|------|----------|
 | 2x Money (1 hour) | Developer Product | Doubles farm income and sell payouts for 60 minutes of in-game time. The timer only counts down while the player is online. Buying again adds another 60 minutes. Shown as a HUD timer. |
 | Extra Wheel Spin | Developer Product | Grants one extra spin, usable immediately. |
-| Upgrade Skins | Game Pass per skin set | Cosmetic only. Changes the look of shoes, hazmat suit, and so on. No gameplay effect. |
+| Upgrade Skins | Game Pass per skin set | Cosmetic only, no gameplay effect. The equipped set recolors the character as a suit and boots (hiding the avatar's shirt and pants), with goggles and, for some sets, a glow: Lab Coat (white, goggles), Toxic (glowing green), Gold (gilded). |
 | Respawn with Caught Freaks | Developer Product | Offered for 10 seconds after dying while carrying at least one freak of any rarity. On purchase the player respawns at the shop still carrying everything. |
 
 Rules:
@@ -433,6 +433,7 @@ src/
       Wheel.luau         odds
       Products.luau      product and game pass IDs
       Biomes.luau        each zone's ground, walls and lighting
+      Sounds.luau        sound effect IDs and volumes
     Formulas.luau        income, sellPrice, holdTime, radiation, upgradeCost, itemPrice, zoneFromPosition
     Remotes.luau         creates and exposes all RemoteEvents/Functions
   server/            -> ServerScriptService
@@ -452,6 +453,9 @@ src/
     FreakRenderer.luau   moves freak models along their waypoints
     DoorController.luau  per-player door state
     BiomeController.luau per-zone lighting
+    FeedbackController.luau  grab/money sounds and sparkles, radiation geiger loop
+    UiScaleController.luau   shrinks every ScreenGui on small (phone) screens
+    Sfx.luau             plays one-shot sound effects
     one controller per UI screen in section 11
 tools/               -> ServerStorage.Tools (Studio-only builders, never run in game)
   BuildMap.luau        walls, doors, shop, farm plots, lab floor

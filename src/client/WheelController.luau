@@ -19,6 +19,7 @@ local Wheel = require(Shared.Config.Wheel)
 local Rarities = require(Shared.Config.Rarities)
 local Products = require(Shared.Config.Products)
 local UiKit = require(script.Parent.UiKit)
+local Sfx = require(script.Parent.Sfx)
 local Purchases = require(script.Parent.Purchases)
 
 local player = Players.LocalPlayer
@@ -226,6 +227,7 @@ function WheelController.start()
 			end
 			if t >= 1 then
 				connection:Disconnect()
+				Sfx.play("wheelWin")
 				pointer.Position = UDim2.fromScale(landing, 0)
 				spinning = false
 				lastResult = ("You won %s %s %s (Tier %d)!"):format(Format.article(rarity), rarity, species, tier)

@@ -66,6 +66,7 @@ function FreakModels.loadMeshes()
 				part.Name = name
 				part.TextureID = species.texture
 				part.Size = species.size
+				part.Material = Enum.Material.Fabric -- matte: no plastic shine
 				setupPart(part)
 				part.Parent = folder
 			else

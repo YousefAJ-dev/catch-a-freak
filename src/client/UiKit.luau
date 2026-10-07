@@ -6,6 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Rarities = require(ReplicatedStorage.Shared.Config.Rarities)
 local FreakConfig = require(ReplicatedStorage.Shared.Config.Freaks)
+local Sfx = require(script.Parent.Sfx)
 
 local player = Players.LocalPlayer
 
@@ -181,7 +182,10 @@ function UiKit.button(parent: Instance, text: string, color: Color3, enabled: bo
 	})
 	UiKit.corner(button, 8)
 	if enabled then
-		button.Activated:Connect(onClick)
+		button.Activated:Connect(function()
+			Sfx.play("click")
+			onClick()
+		end)
 	end
 	return button
 end
@@ -356,6 +360,7 @@ function UiKit.tabs(panel: Panel, names: { string }, onSelect: (string) -> ()): 
 		})
 		UiKit.corner(button, 6)
 		button.Activated:Connect(function()
+			Sfx.play("click")
 			select(name)
 		end)
 		buttons[name] = button

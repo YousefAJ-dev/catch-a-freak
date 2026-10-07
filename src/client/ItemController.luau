@@ -12,6 +12,7 @@ local UserInputService = game:GetService("UserInputService")
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Items = require(ReplicatedStorage.Shared.Config.Items)
 local UiKit = require(script.Parent.UiKit)
+local Sfx = require(script.Parent.Sfx)
 
 local player = Players.LocalPlayer
 
@@ -50,11 +51,13 @@ local function fireNet(useMouse: boolean)
 	local target = aimPoint(useMouse)
 	if target then
 		Remotes.UseNetLauncher:FireServer(target)
+		Sfx.play("net")
 	end
 end
 
 local function placeTrap()
 	Remotes.PlaceBearTrap:FireServer()
+	Sfx.play("trap")
 end
 
 -- A quick expanding ring where a net lands, seen by everyone.

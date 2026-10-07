@@ -110,6 +110,51 @@ local function vary(color: Color3, rng: Random, amount: number): Color3
 end
 
 ------------------------------------------------------------------------------
+-- Generated props: textured meshes made with Roblox's mesh generator (see
+-- docs/generating-models.md). Each is loaded once, then cloned and scaled.
+
+local AssetService = game:GetService("AssetService")
+
+local PROP_MESHES = {
+	deadTree = { mesh = "rbxassetid://78226499815099", texture = "rbxassetid://125523398158330" },
+	scarecrow = { mesh = "rbxassetid://113970480724403", texture = "rbxassetid://81469309179972" },
+	swampTree = { mesh = "rbxassetid://103303125428981", texture = "rbxassetid://103554161091590" },
+	crystals = { mesh = "rbxassetid://130322223811308", texture = "rbxassetid://105715702987523" },
+	stalagmite = { mesh = "rbxassetid://85263007780215", texture = "rbxassetid://78347370518006" },
+	mushrooms = { mesh = "rbxassetid://75807441907262", texture = "rbxassetid://77642159859702" },
+	chemicalTank = { mesh = "rbxassetid://85973143778239", texture = "rbxassetid://98055436336708" },
+	toxicBarrel = { mesh = "rbxassetid://115292107387822", texture = "rbxassetid://87474353778075" },
+}
+
+local templates: { [string]: MeshPart } = {}
+
+-- A copy of a generated prop, scaled evenly to `height` and standing on `cf`.
+-- Matte (Fabric) so it reads as painted rather than plastic.
+local function meshProp(key: string, parent: Instance, cf: CFrame, height: number, decor: boolean?): MeshPart
+	local template = templates[key]
+	if not template then
+		local info = PROP_MESHES[key]
+		template = AssetService:CreateMeshPartAsync(Content.fromUri(info.mesh))
+		template.TextureID = info.texture
+		templates[key] = template
+	end
+	local p = template:Clone()
+	p.Name = key
+	p.Anchored = true
+	p.Material = Enum.Material.Fabric
+	p.Size *= height / p.Size.Y
+	p.CFrame = cf * CFrame.new(0, p.Size.Y / 2 - 0.1, 0)
+	p.CanTouch = false
+	if decor then
+		p.CanCollide = false
+		p.CanQuery = false
+		p.CastShadow = false
+	end
+	p.Parent = parent
+	return p
+end
+
+------------------------------------------------------------------------------
 -- Placement
 
 type Placed = { position: Vector3, radius: number }
@@ -179,18 +224,8 @@ end
 ------------------------------------------------------------------------------
 -- Ring 1: dry field
 
-local function deadTree(parent: Instance, cf: CFrame, rng: Random, bark: Color3)
-	local m = model("DeadTree", parent)
-	local h = rng:NextNumber(14, 22)
-	local d = rng:NextNumber(1.8, 2.6)
-	local color = vary(bark, rng, 0.15)
-	column(cf, h, d, { Name = "Trunk", Color = color, Material = Enum.Material.Wood, Parent = m })
-	for i = 1, rng:NextInteger(3, 5) do
-		local from = (cf * CFrame.new(0, h * rng:NextNumber(0.45, 0.95), 0)).Position
-		local dir = (cf * CFrame.Angles(0, math.rad(i * 72 + rng:NextNumber(-20, 20)), 0)).LookVector
-		local to = from + dir * rng:NextNumber(3, 6) + Vector3.new(0, rng:NextNumber(2, 5), 0)
-		rod(from, to, d * 0.4, { Name = "Branch", Color = color, Material = Enum.Material.Wood, decor = true, Parent = m })
-	end
+local function deadTree(parent: Instance, cf: CFrame, rng: Random)
+	meshProp("deadTree", parent, cf, rng:NextNumber(14, 22))
 end
 
 local function bush(parent: Instance, cf: CFrame, rng: Random, color: Color3)
@@ -208,6 +243,8 @@ local function bush(parent: Instance, cf: CFrame, rng: Random, color: Color3)
 	end
 end
 
+-- The generated hay bale came out with magenta bands; this stays a plain
+-- cylinder until a better one is generated.
 local function hayBale(parent: Instance, cf: CFrame, rng: Random)
 	local d = rng:NextNumber(4, 5)
 	part({
@@ -278,24 +315,13 @@ local function fence(parent: Instance, cf: CFrame, rng: Random)
 	end
 end
 
-local function scarecrow(parent: Instance, cf: CFrame)
-	local m = model("Scarecrow", parent)
-	local wood = Color3.fromRGB(110, 85, 55)
-	part({ Name = "Post", Size = Vector3.new(0.7, 9, 0.7), CFrame = cf * CFrame.new(0, 4.5, 0), Color = wood, Material = Enum.Material.Wood, Parent = m })
-	part({ Name = "Arms", Size = Vector3.new(6, 0.5, 0.5), CFrame = cf * CFrame.new(0, 6.5, 0), Color = wood, Material = Enum.Material.Wood, decor = true, Parent = m })
-	part({ Name = "Shirt", Size = Vector3.new(3, 3, 1.4), CFrame = cf * CFrame.new(0, 5.8, 0), Color = Color3.fromRGB(70, 110, 150), Material = Enum.Material.Fabric, decor = true, Parent = m })
-	part({ Name = "Head", Shape = Enum.PartType.Ball, Size = Vector3.one * 2, CFrame = cf * CFrame.new(0, 8.3, 0), Color = Color3.fromRGB(200, 170, 110), Material = Enum.Material.Fabric, decor = true, Parent = m })
-	column(cf * CFrame.new(0, 9, 0), 0.2, 3.4, { Name = "HatBrim", Color = Color3.fromRGB(150, 120, 60), Material = Enum.Material.Fabric, decor = true, Parent = m })
-	column(cf * CFrame.new(0, 9.2, 0), 1.2, 1.8, { Name = "HatTop", Color = Color3.fromRGB(150, 120, 60), Material = Enum.Material.Fabric, decor = true, Parent = m })
-	-- Glowing eyes: it's still a radioactive field.
-	for _, x in { -0.4, 0.4 } do
-		part({ Name = "Eye", Shape = Enum.PartType.Ball, Size = Vector3.one * 0.35, CFrame = cf * CFrame.new(x, 8.5, -0.9), Color = Color3.fromRGB(150, 255, 90), Material = Enum.Material.Neon, decor = true, Parent = m })
-	end
+local function scarecrow(parent: Instance, cf: CFrame, rng: Random)
+	meshProp("scarecrow", parent, cf, rng:NextNumber(8, 10))
 end
 
 local function buildDryField(folder: Instance, ring: any, rng: Random)
 	scatter(rng, ring, 44, { kind = "edge", radius = 5, onBank = true }, function(cf, r)
-		deadTree(folder, cf, r, Color3.fromRGB(105, 85, 65))
+		deadTree(folder, cf, r)
 	end)
 	scatter(rng, ring, 50, { kind = "field", radius = 2, overlap = true }, function(cf, r)
 		bush(folder, cf, r, Color3.fromRGB(150, 140, 70))
@@ -307,7 +333,7 @@ local function buildDryField(folder: Instance, ring: any, rng: Random)
 		hayBale(folder, cf, r)
 	end)
 	scatter(rng, ring, 5, { kind = "field", radius = 3 }, function(cf, r)
-		scarecrow(folder, cf)
+		scarecrow(folder, cf, r)
 	end)
 	scatter(rng, ring, 45, { kind = "field", radius = 2 }, function(cf, r)
 		boulder(folder, cf, r, Color3.fromRGB(150, 140, 120), r:NextNumber(1.5, 4))
@@ -348,26 +374,19 @@ local function carWreck(parent: Instance, cf: CFrame, rng: Random)
 end
 
 local function barrel(parent: Instance, cf: CFrame, rng: Random, color: Color3, toxic: boolean)
+	if toxic then
+		local p = meshProp("toxicBarrel", parent, cf * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0), 3.6)
+		if rng:NextNumber() < 0.3 then
+			light(p, Color3.fromRGB(120, 255, 60), 10, 1)
+		end
+		return
+	end
 	local m = model("Barrel", parent)
-	local tipped = rng:NextNumber() < 0.3
 	local d, h = 2.6, 3.6
-	if tipped then
+	if rng:NextNumber() < 0.3 then
 		part({ Name = "Drum", Shape = Enum.PartType.Cylinder, Size = Vector3.new(h, d, d), CFrame = cf * CFrame.new(0, d / 2, 0), Color = color, Material = Enum.Material.CorrodedMetal, Parent = m })
 	else
 		column(cf, h, d, { Name = "Drum", Color = color, Material = Enum.Material.CorrodedMetal, Parent = m })
-	end
-	if toxic then
-		local puddle = column(cf * CFrame.new(if tipped then h / 2 + 1 else 0, 0, 0), 0.12, rng:NextNumber(3, 5), {
-			Name = "Puddle",
-			Color = Color3.fromRGB(120, 255, 60),
-			Material = Enum.Material.Neon,
-			Transparency = 0.25,
-			decor = true,
-			Parent = m,
-		})
-		if rng:NextNumber() < 0.3 then
-			light(puddle, Color3.fromRGB(120, 255, 60), 10, 1)
-		end
 	end
 end
 
@@ -500,47 +519,7 @@ local function pool(parent: Instance, cf: CFrame, rng: Random, diameter: number)
 end
 
 local function swampTree(parent: Instance, cf: CFrame, rng: Random)
-	local m = model("SwampTree", parent)
-	local bark = vary(Color3.fromRGB(70, 60, 50), rng, 0.15)
-	local h = rng:NextNumber(16, 26)
-	local d = rng:NextNumber(2.2, 3.2)
-	column(cf, h * 0.55, d * 1.3, { Name = "Trunk", Color = bark, Material = Enum.Material.Wood, Parent = m })
-	column(cf * CFrame.new(0, h * 0.55, 0), h * 0.45, d * 0.8, { Name = "Trunk", Color = bark, Material = Enum.Material.Wood, Parent = m })
-	-- Roots flaring into the mud.
-	for i = 1, 4 do
-		local dir = (cf * CFrame.Angles(0, math.rad(i * 90 + 45), 0)).LookVector
-		local from = (cf * CFrame.new(0, 3, 0)).Position
-		rod(from, from + dir * 3.5 - Vector3.new(0, 3.2, 0), d * 0.45, { Name = "Root", Color = bark, Material = Enum.Material.Wood, decor = true, Parent = m })
-	end
-	-- Branches with drooping moss and a ragged clump of leaves.
-	for i = 1, rng:NextInteger(2, 4) do
-		local from = (cf * CFrame.new(0, h * rng:NextNumber(0.6, 0.95), 0)).Position
-		local dir = (cf * CFrame.Angles(0, math.rad(i * 100 + rng:NextNumber(-25, 25)), 0)).LookVector
-		local to = from + dir * rng:NextNumber(4, 7) + Vector3.new(0, rng:NextNumber(1, 3), 0)
-		rod(from, to, d * 0.35, { Name = "Branch", Color = bark, Material = Enum.Material.Wood, decor = true, Parent = m })
-		blob({
-			Name = "Leaves",
-			Size = Vector3.new(rng:NextNumber(5, 8), rng:NextNumber(2.5, 4), rng:NextNumber(5, 8)),
-			CFrame = CFrame.new(to + Vector3.new(0, 0.8, 0)),
-			Color = vary(Color3.fromRGB(70, 100, 45), rng, 0.15),
-			Material = Enum.Material.LeafyGrass,
-			decor = true,
-			Parent = m,
-		})
-		for _ = 1, 2 do
-			local strand = rng:NextNumber(2, 5)
-			part({
-				Name = "Moss",
-				Size = Vector3.new(0.3, strand, 0.8),
-				CFrame = CFrame.new(from:Lerp(to, rng:NextNumber(0.3, 1)) - Vector3.new(0, strand / 2, 0)),
-				Color = Color3.fromRGB(110, 140, 70),
-				Material = Enum.Material.Fabric,
-				Transparency = 0.15,
-				decor = true,
-				Parent = m,
-			})
-		end
-	end
+	meshProp("swampTree", parent, cf, rng:NextNumber(16, 26))
 end
 
 local function reeds(parent: Instance, cf: CFrame, rng: Random)
@@ -649,45 +628,23 @@ local function caveWall(parent: Instance, cf: CFrame, rng: Random)
 end
 
 local function stalagmite(parent: Instance, cf: CFrame, rng: Random)
-	local m = model("Stalagmite", parent)
-	local h = rng:NextNumber(6, 18)
-	local d = h * rng:NextNumber(0.3, 0.4)
-	local color = vary(CAVE_ROCK, rng, 0.15)
-	local y = 0
-	for _, f in { { 0.4, 1 }, { 0.32, 0.68 }, { 0.28, 0.4 } } do
-		column(cf * CFrame.new(0, y, 0), h * f[1], d * f[2], { Name = "Section", Color = color, Material = Enum.Material.Rock, Parent = m })
-		y += h * f[1]
-	end
+	meshProp("stalagmite", parent, cf, rng:NextNumber(6, 18))
 end
 
 local function crystals(parent: Instance, cf: CFrame, rng: Random, lit: boolean)
-	local m = model("Crystals", parent)
-	local color = CRYSTALS[rng:NextInteger(1, #CRYSTALS)]
-	local base = blob({ Name = "Base", Size = Vector3.new(4, 1.6, 4), CFrame = cf, Color = vary(CAVE_ROCK, rng, 0.1), Material = Enum.Material.Rock, Parent = m })
-	for _ = 1, rng:NextInteger(3, 6) do
-		local h = rng:NextNumber(3, 9)
-		local w = rng:NextNumber(0.8, 1.6)
-		part({
-			Name = "Crystal",
-			Size = Vector3.new(w, h, w),
-			CFrame = cf
-				* CFrame.new(rng:NextNumber(-1.2, 1.2), 0, rng:NextNumber(-1.2, 1.2))
-				* CFrame.Angles(math.rad(rng:NextNumber(-30, 30)), rng:NextNumber(0, math.pi), math.rad(rng:NextNumber(-30, 30)))
-				* CFrame.new(0, h / 2, 0),
-			Color = color,
-			Material = Enum.Material.Neon,
-			Transparency = 0.1,
-			CastShadow = false,
-			Parent = m,
-		})
-	end
+	local p = meshProp("crystals", parent, cf, rng:NextNumber(5, 10))
 	if lit then
-		light(base, color, 22, 2)
+		light(p, CRYSTALS[rng:NextInteger(1, #CRYSTALS)], 22, 2)
 	end
 end
 
--- A rock arch whose top is `height` up, its two feet `span` apart along the
--- cf's X axis.
+local function caveShrooms(parent: Instance, cf: CFrame, rng: Random, lit: boolean)
+	local p = meshProp("mushrooms", parent, cf, rng:NextNumber(3, 6), true)
+	if lit then
+		light(p, Color3.fromRGB(90, 210, 255), 14, 1.5)
+	end
+end
+
 local function arch(parent: Instance, cf: CFrame, rng: Random, span: number, height: number)
 	local m = model("Arch", parent)
 	local color = vary(CAVE_ROCK, rng, 0.1)
@@ -745,8 +702,7 @@ local function buildCavern(folder: Instance, ring: any, rng: Random)
 		crystals(folder, cf, r, lit % 2 == 0)
 	end)
 	scatter(rng, ring, 70, { kind = "field", radius = 2, overlap = true }, function(cf, r)
-		local caps = { Color3.fromRGB(80, 200, 255), Color3.fromRGB(110, 255, 220), Color3.fromRGB(170, 120, 255) }
-		glowShroom(folder, cf, r, caps[r:NextInteger(1, #caps)], r:NextNumber(1, 1.8), r:NextNumber() < 0.3)
+		caveShrooms(folder, cf, r, r:NextNumber() < 0.3)
 	end)
 end
 
@@ -757,18 +713,7 @@ local PLANT_METAL = Color3.fromRGB(175, 180, 185)
 local TOXIC = Color3.fromRGB(130, 255, 60)
 
 local function tank(parent: Instance, cf: CFrame, rng: Random)
-	local m = model("Tank", parent)
-	local d = rng:NextNumber(14, 20)
-	local h = rng:NextNumber(18, 30)
-	local paint = ({ Color3.fromRGB(225, 228, 220), Color3.fromRGB(170, 195, 160), Color3.fromRGB(200, 190, 140) })[rng:NextInteger(1, 3)]
-	column(cf, h, d, { Name = "Body", Color = paint, Material = Enum.Material.Metal, Parent = m })
-	blob({ Name = "Dome", Size = Vector3.new(d, d * 0.35, d), CFrame = cf * CFrame.new(0, h, 0), Color = paint, Material = Enum.Material.Metal, Parent = m })
-	for _, y in { h * 0.3, h * 0.7 } do
-		column(cf * CFrame.new(0, y, 0), 0.8, d + 0.4, { Name = "Band", Color = Color3.fromRGB(60, 65, 70), Material = Enum.Material.Metal, decor = true, Parent = m })
-	end
-	-- Hazard band and a ladder on the side facing the ring.
-	column(cf * CFrame.new(0, h * 0.5, 0), 2, d + 0.3, { Name = "Hazard", Color = Color3.fromRGB(245, 200, 30), Material = Enum.Material.SmoothPlastic, decor = true, Parent = m })
-	part({ Name = "Ladder", Size = Vector3.new(1.6, h, 0.4), CFrame = cf * CFrame.new(0, h / 2, -d / 2 - 0.3), Color = Color3.fromRGB(80, 85, 90), Material = Enum.Material.DiamondPlate, decor = true, Parent = m })
+	meshProp("chemicalTank", parent, cf, rng:NextNumber(18, 30))
 end
 
 local function smokestack(parent: Instance, cf: CFrame, rng: Random)
