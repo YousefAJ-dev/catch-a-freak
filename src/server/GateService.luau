@@ -78,7 +78,7 @@ local function onTurnIn(player: Player, requirementIndex: any, source: any, inde
 		return
 	end
 	if not Formulas.meetsRequirement(freak, requirement) then
-		notify(player, ("That's not %s %s %s or better"):format(Format.article(requirement.rarity), requirement.rarity, requirement.species))
+		notify(player, ("That's not %s %s %s or better"):format(Format.article(requirement.rarity), requirement.rarity, Formulas.requirementSpeciesText(requirement)))
 		return
 	end
 

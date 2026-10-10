@@ -319,7 +319,7 @@ Items are used with dedicated buttons, not carry slots: Q for Net Launcher, R fo
 | Item | Base price | Behavior |
 |------|-----------|----------|
 | Net Launcher | 100 | Fires at a target point up to 40 studs away. Instantly catches up to 3 freaks within 15 studs of the impact, limited by free carry slots, with no hold time. Works on Common, Uncommon, and Rare. Has no effect on Epic or Legendary. One use. |
-| Bear Trap | 50 | Placed on the ground. The first freak to walk over it is pinned for 30 seconds. A pinned freak takes 0.5 seconds to grab regardless of tier or rarity, and only the trap's owner can grab it while pinned. The trap disappears after it triggers or after 120 seconds. One active trap per player. One use. |
+| Bear Trap | 50 | Placed on the ground. The first freak to walk over it is pinned for 30 seconds. A pinned freak takes 0.5 seconds to grab regardless of tier or rarity, and only the trap's owner can grab it while pinned. The trap disappears after it triggers or after 120 seconds. One active trap per player: setting another removes the old one. One use. |
 
 ### Selling
 
@@ -329,18 +329,20 @@ The **Sell** prompt at the sell counter opens the sell panel: the player's carri
 
 ## 8. Progression gates
 
-Each gate asks for a number of freaks of 2 specific species. A freak counts if it is the required species at the required rarity or higher. Turn them in at the gate counter in the shop, from the carry slots or straight from the farm. Turned-in freaks are consumed.
+Each gate asks for a number of freaks of specific species. A freak counts if it is the required species at the required rarity or higher. Turn them in at the gate counter in the shop, from the carry slots or straight from the farm. Turned-in freaks are consumed.
 
 The counts roughly double the freaks a player has to meet per gate (about 21, 42, 80 and 180), alongside gear costs that double per ring, for the doubling pace in section 1.
 
-| Gate | Unlocks | Requirement 1 | Requirement 2 |
-|------|---------|---------------|---------------|
-| 1 | Tier 2 (Ring 2) | 1× Uncommon Twitcher | 1× Rare Glowbug |
-| 2 | Tier 3 (Ring 3) | 2× Rare Rustback | 2× Uncommon Gloomhound |
-| 3 | Tier 4 (Ring 4) | 2× Rare Sludgelet | 1× Epic Hexwing |
-| 4 | Tier 5 (Ring 5) | 2× Rare Tri-Eye | 3× Epic Nightmare |
+| Gate | Unlocks | Requirements |
+|------|---------|--------------|
+| 1 | Tier 2 (Ring 2) | 1× Uncommon Twitcher, 1× Rare Glowbug |
+| 2 | Tier 3 (Ring 3) | 2× Rare Rustback, 2× Uncommon Gloomhound |
+| 3 | Tier 4 (Ring 4) | 3× Rare Sludgelet, 3× Rare Hexwing, 2× Epic Bloatworm, 1× Legendary of any Ring 3 species |
+| 4 | Tier 5 (Ring 5) | 5× Uncommon Voidmoth, 4× Rare Tri-Eye, 3× Epic Nightmare, 1× Legendary of any Ring 4 species |
 
-**Release cap.** `Config/Release.luau` sets how many tiers a build includes (3 for the first private playtest, 5 at launch). The gate past it says its ring opens in a later update, and the daily wheel never gives freaks from past it.
+A requirement can name several species (`species = { "Bloatworm", "Hexwing", "Sludgelet" }` in `Config/Gates.luau`); a freak of any of them counts.
+
+**Release cap.** `Config/Release.luau` sets how many tiers a build includes (`releasedTiers`; currently 5, all rings open). The gate past it says its ring opens in a later update, and the daily wheel never gives freaks from past it.
 
 **Measuring the pace.** Each player's play time and the play time at which they reached each tier are saved. Reaching a tier prints `[Progress] … reached tier N after X min played (Ring N−1 took Y min)` to the server log and sends a `ReachedTierN` custom analytics event (value: minutes played), visible in Creator Hub > Analytics. In Studio, `/progress` shows the same.
 

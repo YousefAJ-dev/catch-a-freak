@@ -57,9 +57,25 @@ function Formulas.rarityRank(rarityId: string): number
 	error("unknown rarity " .. tostring(rarityId))
 end
 
--- Whether a freak meets a gate requirement: same species, required rarity or higher.
-function Formulas.meetsRequirement(freak: { species: string, rarity: string }, requirement: { species: string, rarity: string }): boolean
-	return freak.species == requirement.species and Formulas.rarityRank(freak.rarity) >= Formulas.rarityRank(requirement.rarity)
+-- The species a gate requirement accepts, as a list (it may name one or several).
+function Formulas.requirementSpecies(requirement: { species: string | { string } }): { string }
+	local species = requirement.species
+	return if typeof(species) == "table" then species else { species :: string }
+end
+
+-- A requirement's species for display: "Glowbug", or "Bloatworm, Hexwing or Sludgelet".
+function Formulas.requirementSpeciesText(requirement: { species: string | { string } }): string
+	local names = Formulas.requirementSpecies(requirement)
+	if #names == 1 then
+		return names[1]
+	end
+	return table.concat(names, ", ", 1, #names - 1) .. " or " .. names[#names]
+end
+
+-- Whether a freak meets a gate requirement: an accepted species, required rarity or higher.
+function Formulas.meetsRequirement(freak: { species: string, rarity: string }, requirement: { species: string | { string }, rarity: string }): boolean
+	return table.find(Formulas.requirementSpecies(requirement), freak.species) ~= nil
+		and Formulas.rarityRank(freak.rarity) >= Formulas.rarityRank(requirement.rarity)
 end
 
 -- Seconds a player must hold the grab input on a freak.

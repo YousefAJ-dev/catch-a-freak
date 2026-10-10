@@ -8,7 +8,8 @@
 --
 -- Bear Trap: set where the player stands. The first freak to step on it is
 -- pinned (FreakService.pin) and the trap is used up; an untriggered trap
--- disappears after its lifetime. One active trap per player.
+-- disappears after its lifetime. One active trap per player: setting another
+-- picks the old one up (it's used up) and sets the new one.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -166,13 +167,11 @@ local function onPlaceBearTrap(player: Player)
 	if not root then
 		return
 	end
-	if traps[player] then
-		notify(player, "You already have a trap out")
-		return
-	end
 	if not consume(player, Items.bearTrap.id) then
 		return
 	end
+	local replaced = traps[player] ~= nil
+	removeTrap(player)
 	local position = Vector3.new(root.Position.X, World.groundY, root.Position.Z)
 	local model = buildTrapModel(position, false)
 	model.Name = "BearTrap_" .. player.Name
@@ -183,7 +182,9 @@ local function onPlaceBearTrap(player: Player)
 		position = position,
 		expiresAt = os.clock() + Items.bearTrap.lifetime,
 	}
-	notify(player, "Trap set — the first freak to step on it is pinned for you")
+	notify(player, if replaced
+		then "Trap moved here — your old one was removed"
+		else "Trap set — the first freak to step on it is pinned for you")
 end
 
 local function checkTraps()

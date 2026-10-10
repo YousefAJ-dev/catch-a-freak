@@ -83,8 +83,12 @@ function GateController.start()
 
 		for i, requirement in gate.requirements do
 			local turnedIn = progress[i] or 0
-			local title = ("%s%s %s or better"):format(if requirement.count > 1 then ("%d× "):format(requirement.count) else "", requirement.rarity, requirement.species)
-			local where = ("Found in Ring %d"):format(tierOfSpecies[requirement.species] or 1)
+			local title = ("%s%s %s or better"):format(
+				if requirement.count > 1 then ("%d× "):format(requirement.count) else "",
+				requirement.rarity,
+				Formulas.requirementSpeciesText(requirement)
+			)
+			local where = ("Found in Ring %d"):format(tierOfSpecies[Formulas.requirementSpecies(requirement)[1]] or 1)
 			if turnedIn >= requirement.count then
 				UiKit.row(panel.list, nextOrder(), title, where, "✓ Turned in", "Done", UiKit.colors.go, false, function() end)
 				continue

@@ -5,5 +5,5 @@
 -- finished (5 at launch; 3 for the first private playtest).
 
 return {
-	releasedTiers = 3,
+	releasedTiers = 5,
 }
