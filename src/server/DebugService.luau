@@ -16,6 +16,7 @@
 --                             purchaseId to replay a receipt
 --   /buyskin <key>            simulate buying a skin set Game Pass
 --   /policy restricted|open   pretend paid random items are (not) restricted
+--   /time <day|dusk|night|dawn>  jump the day/night cycle to that phase, for everyone
 -- Results print to the Output window.
 
 local Players = game:GetService("Players")
@@ -27,6 +28,7 @@ local FreakService = require(script.Parent.FreakService)
 local FarmService = require(script.Parent.FarmService)
 local WheelService = require(script.Parent.WheelService)
 local MonetizationService = require(script.Parent.MonetizationService)
+local DayNight = require(game:GetService("ReplicatedStorage").Shared.Config.DayNight)
 
 type Command = {
 	alias: string,
@@ -159,6 +161,26 @@ local commands: { Command } = {
 			-- Accept any capitalisation: "epic" -> "Epic".
 			rarity = rarity:sub(1, 1):upper() .. rarity:sub(2):lower()
 			return "spawned " .. FreakService.spawnNear(player, tier, rarity, args[3])
+		end,
+	},
+	{
+		alias = "/time",
+		usage = "/time <day|dusk|night|dawn>",
+		run = function(_, args)
+			-- Shifts the shared clock (BiomeController adds DayNightOffset).
+			local phases = { "day", "dusk", "night", "dawn" }
+			local lengths = { DayNight.daySeconds, DayNight.duskSeconds, DayNight.nightSeconds, DayNight.dawnSeconds }
+			local index = table.find(phases, (args[1] or ""):lower())
+			assert(index, "unknown phase")
+			local start, cycle = 0, 0
+			for i, length in lengths do
+				if i < index then
+					start += length
+				end
+				cycle += length
+			end
+			workspace:SetAttribute("DayNightOffset", start - workspace:GetServerTimeNow() % cycle)
+			return "time = " .. phases[index]
 		end,
 	},
 }

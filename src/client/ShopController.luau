@@ -77,7 +77,7 @@ local EFFECT: { [string]: { label: string, value: (level: number) -> string } } 
 local ShopController = {}
 
 function ShopController.start()
-	local panel = UiKit.panel("ShopPanel", "Shop")
+	local panel = UiKit.panel("ShopPanel", "Shop", UiKit.accents.shop)
 	local open = false
 	local tab = "Upgrades"
 

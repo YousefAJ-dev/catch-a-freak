@@ -22,28 +22,28 @@ function ReviveController.start()
 	local frame = UiKit.make("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.4),
-		Size = UDim2.fromOffset(380, 190),
+		Size = UDim2.fromOffset(460, 220),
 		BackgroundColor3 = UiKit.colors.panel,
 		Parent = gui,
 	})
-	UiKit.corner(frame, 14)
-	UiKit.make("UIStroke", { Color = Color3.fromRGB(255, 90, 70), Thickness = 2, Parent = frame })
+	UiKit.corner(frame, 16)
+	UiKit.make("UIStroke", { Color = Color3.fromRGB(255, 90, 70), Thickness = 3, Parent = frame })
 	local title = UiKit.make("TextLabel", {
 		Position = UDim2.fromOffset(20, 14),
-		Size = UDim2.new(1, -40, 0, 30),
+		Size = UDim2.new(1, -40, 0, 34),
 		BackgroundTransparency = 1,
 		Font = Enum.Font.GothamBlack,
-		TextSize = 24,
+		TextSize = 26,
 		TextColor3 = UiKit.colors.text,
 		Text = "You were overcome by radiation",
 		Parent = frame,
 	})
 	local body = UiKit.make("TextLabel", {
-		Position = UDim2.fromOffset(20, 50),
-		Size = UDim2.new(1, -40, 0, 50),
+		Position = UDim2.fromOffset(20, 56),
+		Size = UDim2.new(1, -40, 0, 60),
 		BackgroundTransparency = 1,
-		Font = Enum.Font.Gotham,
-		TextSize = 16,
+		Font = Enum.Font.GothamMedium,
+		TextSize = 18,
 		TextWrapped = true,
 		TextColor3 = UiKit.colors.text,
 		Parent = frame,
@@ -51,7 +51,7 @@ function ReviveController.start()
 	local buyHolder = UiKit.make("Frame", {
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -16),
-		Size = UDim2.new(1, -40, 0, 44),
+		Size = UDim2.new(1, -40, 0, 50),
 		BackgroundTransparency = 1,
 		Parent = frame,
 	})

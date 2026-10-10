@@ -9,7 +9,7 @@
 --
 -- Fields the client needs to display are mirrored onto the Player as
 -- attributes ("Money", "HighestTier", "Upgrade_<id>", "Item_<id>", "GateProgress",
--- "WheelLastFreeDay", "WheelExtraSpins"). The record stays the
+-- "WheelLastFreeDay", "WheelExtraSpins", "Freakpedia"). The record stays the
 -- source of truth; never read those attributes back on the server as values.
 -- (Connecting to their change signals to learn that something changed is fine.)
 --
@@ -48,6 +48,7 @@ export type Data = {
 	ownedSkins: { string }, -- skin set keys (Config/Products)
 	equippedSkin: string, -- "" for none
 	processedReceipts: { string }, -- recent Developer Product PurchaseIds
+	freakpedia: { [string]: { string } }, -- species name -> rarity ids caught (Config/Freakpedia)
 }
 
 local function newData(): Data
@@ -72,6 +73,7 @@ local function newData(): Data
 		ownedSkins = {},
 		equippedSkin = "",
 		processedReceipts = {},
+		freakpedia = {},
 	}
 end
 
@@ -130,6 +132,7 @@ local function replicate(player: Player, data: Data)
 	player:SetAttribute("Boost2xSecondsLeft", data.boost2xSecondsLeft)
 	player:SetAttribute("OwnedSkins", HttpService:JSONEncode(data.ownedSkins))
 	player:SetAttribute("EquippedSkin", data.equippedSkin)
+	player:SetAttribute("Freakpedia", HttpService:JSONEncode(data.freakpedia))
 end
 
 -- Re-sends the mirrored attributes after a service changed the record directly.
@@ -211,6 +214,30 @@ function DataService.setHighestTier(player: Player, tier: number)
 	end
 	data.highestTier = newTier
 	replicate(player, data)
+end
+
+-- Marks a species at a rarity as caught in the player's Freakpedia. Returns
+-- true if it wasn't there before.
+local function discover(data: Data, species: string, rarity: string): boolean
+	local caught = data.freakpedia[species]
+	if not caught then
+		caught = {}
+		data.freakpedia[species] = caught
+	end
+	if table.find(caught, rarity) then
+		return false
+	end
+	table.insert(caught, rarity)
+	return true
+end
+
+function DataService.discover(player: Player, species: string, rarity: string): boolean
+	local data = dataOf(player)
+	local new = discover(data, species, rarity)
+	if new then
+		replicate(player, data)
+	end
+	return new
 end
 
 -- Counts one more freak turned in for a requirement of the player's current gate.
@@ -312,6 +339,8 @@ local function onPlayerAdded(player: Player)
 	profile:Reconcile() -- fills in fields added to the template since the last save
 	for _, record in profile.Data.farm do
 		record.species = FreakConfig.renamed[record.species] or record.species
+		-- Freaks caught before the Freakpedia existed count as discovered.
+		discover(profile.Data, record.species, record.rarity)
 	end
 	-- Gate progress used to be done/not-done flags; it's now a count per
 	-- requirement. A done flag becomes that requirement's full count.

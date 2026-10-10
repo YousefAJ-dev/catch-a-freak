@@ -117,13 +117,12 @@ local AssetService = game:GetService("AssetService")
 
 local PROP_MESHES = {
 	deadTree = { mesh = "rbxassetid://78226499815099", texture = "rbxassetid://125523398158330" },
-	scarecrow = { mesh = "rbxassetid://113970480724403", texture = "rbxassetid://81469309179972" },
 	swampTree = { mesh = "rbxassetid://103303125428981", texture = "rbxassetid://103554161091590" },
 	crystals = { mesh = "rbxassetid://130322223811308", texture = "rbxassetid://105715702987523" },
-	stalagmite = { mesh = "rbxassetid://85263007780215", texture = "rbxassetid://78347370518006" },
+	stalagmiteSpire = { mesh = "rbxassetid://116561740170950", texture = "rbxassetid://116362419704343" },
+	stalagmiteColumn = { mesh = "rbxassetid://124781688214413", texture = "rbxassetid://70627318651630" },
 	mushrooms = { mesh = "rbxassetid://75807441907262", texture = "rbxassetid://77642159859702" },
 	chemicalTank = { mesh = "rbxassetid://85973143778239", texture = "rbxassetid://98055436336708" },
-	toxicBarrel = { mesh = "rbxassetid://115292107387822", texture = "rbxassetid://87474353778075" },
 	shopStall = { mesh = "rbxassetid://113758848730950", texture = "rbxassetid://83054520765255" },
 	sellStall = { mesh = "rbxassetid://134377988342000", texture = "rbxassetid://82776239401599" },
 	gateStation = { mesh = "rbxassetid://107639323938824", texture = "rbxassetid://89595372652864" },
@@ -155,6 +154,62 @@ local function meshProp(key: string, parent: Instance, cf: CFrame, height: numbe
 	end
 	p.Parent = parent
 	return p
+end
+
+-- Generated props that came out in several pieces: each piece's mesh, texture,
+-- size and offset from the bottom center of the whole prop, as generated.
+type PropPiece = { mesh: string, texture: string, size: Vector3, offset: Vector3 }
+
+local PROP_MODELS: { [string]: { height: number, pieces: { PropPiece } } } = {
+	toxicBarrel = {
+		height = 3.655,
+		pieces = {
+			{ mesh = "rbxassetid://92229012993181", texture = "rbxassetid://123322542969096", size = Vector3.new(3, 3.128, 2.946), offset = Vector3.new(0, 1.564, 0) },
+			{ mesh = "rbxassetid://136338102784250", texture = "rbxassetid://132750027673527", size = Vector3.new(1.753, 0.28, 1.771), offset = Vector3.new(-0.003, 3.061, 0.002) },
+			{ mesh = "rbxassetid://106258228620109", texture = "rbxassetid://114115637178881", size = Vector3.new(2.019, 0.509, 2.047), offset = Vector3.new(0.055, 3.4, 0.013) },
+		},
+	},
+	scarecrow = {
+		height = 5.552,
+		pieces = {
+			{ mesh = "rbxassetid://111635682650515", texture = "rbxassetid://72241181097692", size = Vector3.new(1.64, 2.636, 1.558), offset = Vector3.new(0.001, 2.639, 0.019) },
+			{ mesh = "rbxassetid://76269453223450", texture = "rbxassetid://106636274698630", size = Vector3.new(2.428, 1.877, 2.305), offset = Vector3.new(0.009, 4.614, 0) },
+			{ mesh = "rbxassetid://120004506004460", texture = "rbxassetid://107250951221945", size = Vector3.new(1.28, 0.862, 0.916), offset = Vector3.new(1.36, 3.47, 0.009) },
+			{ mesh = "rbxassetid://140195603628190", texture = "rbxassetid://96817856022038", size = Vector3.new(1.273, 0.856, 0.923), offset = Vector3.new(-1.363, 3.476, 0.005) },
+			{ mesh = "rbxassetid://81256720882704", texture = "rbxassetid://106943277190659", size = Vector3.new(0.84, 2.019, 0.718), offset = Vector3.new(0.002, 1.01, 0.009) },
+			{ mesh = "rbxassetid://122073145684114", texture = "rbxassetid://84770073794614", size = Vector3.new(0.844, 2.021, 0.714), offset = Vector3.new(0.003, 1.011, 0.014) },
+		},
+	},
+}
+
+local pieceTemplates: { [string]: MeshPart } = {}
+
+-- A copy of a multi-piece generated prop, scaled evenly to `height` and
+-- standing on `cf`. Its first piece is the PrimaryPart (lights go there).
+local function modelProp(key: string, parent: Instance, cf: CFrame, height: number): Model
+	local info = PROP_MODELS[key]
+	local scale = height / info.height
+	local m = model(key, parent)
+	for i, piece in info.pieces do
+		local template = pieceTemplates[piece.mesh]
+		if not template then
+			template = AssetService:CreateMeshPartAsync(Content.fromUri(piece.mesh))
+			pieceTemplates[piece.mesh] = template
+		end
+		local p = template:Clone()
+		p.Name = key .. i
+		p.TextureID = piece.texture
+		p.Anchored = true
+		p.Material = Enum.Material.Fabric
+		p.Size = piece.size * scale
+		p.CFrame = cf * CFrame.new(piece.offset * scale)
+		p.CanTouch = false
+		p.Parent = m
+		if i == 1 then
+			m.PrimaryPart = p
+		end
+	end
+	return m
 end
 
 ------------------------------------------------------------------------------
@@ -319,7 +374,7 @@ local function fence(parent: Instance, cf: CFrame, rng: Random)
 end
 
 local function scarecrow(parent: Instance, cf: CFrame, rng: Random)
-	meshProp("scarecrow", parent, cf, rng:NextNumber(8, 10))
+	modelProp("scarecrow", parent, cf * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0), rng:NextNumber(8, 10))
 end
 
 local function buildDryField(folder: Instance, ring: any, rng: Random)
@@ -378,9 +433,9 @@ end
 
 local function barrel(parent: Instance, cf: CFrame, rng: Random, color: Color3, toxic: boolean)
 	if toxic then
-		local p = meshProp("toxicBarrel", parent, cf * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0), 3.6)
+		local m = modelProp("toxicBarrel", parent, cf * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0), 3.6)
 		if rng:NextNumber() < 0.3 then
-			light(p, Color3.fromRGB(120, 255, 60), 10, 1)
+			light(m.PrimaryPart :: BasePart,Color3.fromRGB(120, 255, 60), 10, 1)
 		end
 		return
 	end
@@ -631,7 +686,12 @@ local function caveWall(parent: Instance, cf: CFrame, rng: Random)
 end
 
 local function stalagmite(parent: Instance, cf: CFrame, rng: Random)
-	meshProp("stalagmite", parent, cf, rng:NextNumber(6, 18))
+	-- The spire is slim; the column is about twice as wide, with several peaks.
+	if rng:NextNumber() < 0.6 then
+		meshProp("stalagmiteSpire", parent, cf * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0), rng:NextNumber(6, 18))
+	else
+		meshProp("stalagmiteColumn", parent, cf * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0), rng:NextNumber(8, 16))
+	end
 end
 
 local function crystals(parent: Instance, cf: CFrame, rng: Random, lit: boolean)

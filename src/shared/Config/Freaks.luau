@@ -39,8 +39,7 @@ local species: { [number]: { Species } } = {
 	},
 	[5] = {
 		{ name = "Pulsar", tier = 5, shape = "Cylinder", size = Vector3.new(6, 7.4, 5.3), color = Color3.fromRGB(120, 220, 90), mesh = "rbxassetid://103790198148754", texture = "rbxassetid://79297990645623" },
-		-- Stretched well past its generated height: Wobbler is the tall one.
-		{ name = "Wobbler", tier = 5, shape = "Block", size = Vector3.new(3.8, 7.2, 3.8), color = Color3.fromRGB(165, 145, 225), mesh = "rbxassetid://98078051144898", texture = "rbxassetid://135047999453183" },
+		{ name = "Wobbler", tier = 5, shape = "Block", size = Vector3.new(6.5, 6, 6.5), color = Color3.fromRGB(165, 145, 225), mesh = "rbxassetid://98078051144898", texture = "rbxassetid://135047999453183" },
 		{ name = "Grimjaw", tier = 5, shape = "Ball", size = Vector3.new(7.4, 7.5, 6.5), color = Color3.fromRGB(110, 30, 35), mesh = "rbxassetid://129569602253189", texture = "rbxassetid://127886371434177" },
 	},
 }

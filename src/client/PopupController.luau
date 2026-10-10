@@ -17,27 +17,27 @@ function PopupController.start()
 	local frame = UiKit.make("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.45),
-		Size = UDim2.fromOffset(380, 210),
+		Size = UDim2.fromOffset(450, 250),
 		BackgroundColor3 = UiKit.colors.panel,
 		Parent = gui,
 	})
-	UiKit.corner(frame, 14)
-	UiKit.make("UIStroke", { Color = UiKit.colors.money, Thickness = 2, Parent = frame })
+	UiKit.corner(frame, 16)
+	UiKit.make("UIStroke", { Color = UiKit.colors.money, Thickness = 3, Parent = frame })
 	local title = UiKit.make("TextLabel", {
 		Position = UDim2.fromOffset(20, 16),
-		Size = UDim2.new(1, -40, 0, 32),
+		Size = UDim2.new(1, -40, 0, 36),
 		BackgroundTransparency = 1,
 		Font = Enum.Font.GothamBlack,
-		TextSize = 26,
+		TextSize = 30,
 		TextColor3 = UiKit.colors.text,
 		Parent = frame,
 	})
 	local body = UiKit.make("TextLabel", {
-		Position = UDim2.fromOffset(20, 56),
-		Size = UDim2.new(1, -40, 0, 86),
+		Position = UDim2.fromOffset(20, 62),
+		Size = UDim2.new(1, -40, 0, 110),
 		BackgroundTransparency = 1,
-		Font = Enum.Font.Gotham,
-		TextSize = 17,
+		Font = Enum.Font.GothamMedium,
+		TextSize = 18,
 		TextWrapped = true,
 		TextYAlignment = Enum.TextYAlignment.Top,
 		TextColor3 = UiKit.colors.text,
@@ -46,7 +46,7 @@ function PopupController.start()
 	local holder = UiKit.make("Frame", {
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -16),
-		Size = UDim2.fromOffset(140, 40),
+		Size = UDim2.fromOffset(170, 46),
 		BackgroundTransparency = 1,
 		Parent = frame,
 	})

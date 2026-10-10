@@ -53,7 +53,7 @@ local function freeSpinWait(): number
 end
 
 function WheelController.start()
-	local panel = UiKit.panel("WheelPanel", "Daily Wheel")
+	local panel = UiKit.panel("WheelPanel", "Daily Wheel", UiKit.accents.wheel)
 	local open = false
 	local spinning = false
 	local awaiting = false -- asked the server to spin, no answer yet
@@ -64,7 +64,7 @@ function WheelController.start()
 	-- The strip: one segment per prize, its width proportional to the odds.
 	local strip = UiKit.make("Frame", {
 		LayoutOrder = 1,
-		Size = UDim2.new(1, -6, 0, 54),
+		Size = UDim2.new(1, -8, 0, 60),
 		BackgroundTransparency = 1,
 	})
 	local segments = UiKit.make("Frame", {
@@ -101,10 +101,10 @@ function WheelController.start()
 
 	local resultLabel = UiKit.make("TextLabel", {
 		LayoutOrder = 2,
-		Size = UDim2.new(1, -6, 0, 26),
+		Size = UDim2.new(1, -8, 0, 30),
 		BackgroundTransparency = 1,
 		Font = Enum.Font.GothamBlack,
-		TextSize = 17,
+		TextSize = 20,
 		TextWrapped = true,
 		TextColor3 = UiKit.colors.money,
 		Text = "",
@@ -136,18 +136,19 @@ function WheelController.start()
 			local text, color = prizeText(i)
 			local row = UiKit.make("Frame", {
 				LayoutOrder = 3 + i,
-				Size = UDim2.new(1, -6, 0, 26),
+				Size = UDim2.new(1, -8, 0, 32),
 				BackgroundColor3 = UiKit.colors.row,
 				Parent = panel.list,
 			})
-			UiKit.corner(row, 6)
-			UiKit.make("Frame", { Position = UDim2.fromOffset(8, 7), Size = UDim2.fromOffset(12, 12), BackgroundColor3 = prize.color, Parent = row })
+			UiKit.corner(row, 8)
+			local swatch = UiKit.make("Frame", { Position = UDim2.fromOffset(10, 9), Size = UDim2.fromOffset(14, 14), BackgroundColor3 = prize.color, Parent = row })
+			UiKit.corner(swatch, 4)
 			UiKit.make("TextLabel", {
-				Position = UDim2.fromOffset(28, 0),
-				Size = UDim2.new(1, -90, 1, 0),
+				Position = UDim2.fromOffset(32, 0),
+				Size = UDim2.new(1, -96, 1, 0),
 				BackgroundTransparency = 1,
 				Font = Enum.Font.GothamBold,
-				TextSize = 14,
+				TextSize = 16,
 				TextXAlignment = Enum.TextXAlignment.Left,
 				TextColor3 = color,
 				Text = text,
@@ -156,10 +157,10 @@ function WheelController.start()
 			UiKit.make("TextLabel", {
 				AnchorPoint = Vector2.new(1, 0),
 				Position = UDim2.new(1, -10, 0, 0),
-				Size = UDim2.fromOffset(60, 26),
+				Size = UDim2.fromOffset(60, 32),
 				BackgroundTransparency = 1,
 				Font = Enum.Font.GothamBlack,
-				TextSize = 14,
+				TextSize = 16,
 				TextXAlignment = Enum.TextXAlignment.Right,
 				TextColor3 = UiKit.colors.text,
 				Text = ("%d%%"):format(math.round(prize.chance * 100)),

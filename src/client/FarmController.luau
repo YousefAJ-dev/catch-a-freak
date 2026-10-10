@@ -27,7 +27,7 @@ local function decode(attribute: string): { any }
 end
 
 function FarmController.start()
-	local panel = UiKit.panel("FarmPanel", "Your Lab")
+	local panel = UiKit.panel("FarmPanel", "Your Lab", UiKit.accents.farm)
 	local open = false
 
 	local function renderSubtitle()

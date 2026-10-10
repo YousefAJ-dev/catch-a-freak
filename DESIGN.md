@@ -84,7 +84,8 @@ Biomes (looks in `Config/Biomes.luau`, built by `tools/BuildBiomes.luau`):
 
 - The rings' ground is flat terrain exactly at ground level (freaks stand at a fixed height), with low banks sloping up against the walls. Freaks stay 16 studs from walls, clear of the banks.
 - Freaks walk in straight lines through props, so big props stand along the walls and the open middle of each ring stays mostly clear. Nothing is placed in the N/E/S/W lanes.
-- Each zone has its own lighting (time of day, haze, color grading), switched on the client when the player enters it. Daytime zones keep the sun high so the 120-stud walls don't shade the ring floors.
+- Each zone has its own daytime lighting (haze, color grading, ambient), switched on the client when the player enters it.
+- **Day/night cycle** (`Config/DayNight`): a shared 20-minute cycle, run by every client off the server's clock: 14 min of day, 75 s dusk, 3.5 min night, 75 s dawn. During the day the sun only moves between 10:30 and 15:30 so the 120-stud walls don't shade the ring floors. Night blends each zone's look toward a moonlit one with strong blue ambient light, so freaks stay easy to spot. The Cavern (Ring 4) is always night and ignores the cycle.
 
 ---
 
@@ -171,6 +172,16 @@ Population is Ring 1's density (70 freaks over Ring 1's area) times each ring's 
 | Radioactive | 0.1% | ×77 | ×8 | Yellow-green |
 
 The two top rarities are made to be spotted from across a ring: a light, a stream of sparkles, and a tint over the whole body (Rainbow's cycling through the rainbow, Radioactive's a strong yellow-green). They get their own outline instead of competing for the nearest-6 outlines. Carrying a Radioactive freak costs the carrier 1 HP per second, anywhere, and the Hazmat Suit doesn't reduce it (the HUD radiation warning includes it).
+
+### Freakpedia
+
+A collection book with an entry for every species at every rarity (15 species × 7 rarities = 105 entries). An entry is discovered the first time the player catches that species at that rarity, by grab, net, trap or wheel prize. Freaks already on a player's farm when the Freakpedia launched count as discovered. Rewards (all in `Config/Freakpedia`):
+
+- Each new entry pays 1× that freak's sell price.
+- A ring's page is complete once every species of that ring has been caught at Common, Uncommon, Rare, Epic and Legendary. Each complete page gives a permanent +5% farm income.
+- Each Rainbow or Radioactive entry gives a permanent +1% farm income.
+
+The bonuses add up and apply to farm income and offline earnings, but not to sell prices.
 
 ### Value
 
@@ -394,7 +405,7 @@ Rules:
 
 | Screen | Contents |
 |--------|----------|
-| HUD | Money, health bar, radiation warning while in a ring, item buttons with counts, dash button with its cooldown (once owned), 2x timer when active |
+| HUD | Money (a large glowing badge top right that bumps and floats "+$X" on every gain), health bar, radiation warning while in a ring, item buttons with counts, dash button with its cooldown (once owned), 2x timer when active |
 | Carry bar | 9 slots along the bottom. Each filled slot shows the species icon with a rarity-colored border. This is a custom UI, not the Roblox backpack. Disable the default backpack. |
 | Grab bar | Fills while holding a grab |
 | Shop | Tabs: Upgrades, Items, Skins. Each row shows current level, effect, and next cost. |
@@ -402,7 +413,9 @@ Rules:
 | Gate panel | The 2 required freaks, checkmarks for done ones, turn-in buttons |
 | Farm panel | Placed freaks with income each, total income per second, capacity, place and pick-up buttons |
 | Wheel | Opened by the Spin prompt at the wheel. A strip of prize segments sized by their odds, with a pointer that sweeps and lands on the result while the wheel in the shop spins; the odds table; spin button; time until the next free spin and any extra spins |
-| Popups | Offline earnings on join, revive offer on death, tier unlocked |
+| Panel style | Every menu panel (shop, sell, farm, gate, wheel) is 440×540, docked right, with a header bar and border in its own accent color (shop blue, sell gold, farm green, gate purple, wheel pink; `UiKit.accents`) and a drop shadow. |
+| Popups | Offline earnings on join, revive offer on death, tier unlocked, Freakpedia page complete |
+| Freakpedia | Opened by the book button on the left of the HUD, or P. A tab per ring. Each species card shows its model (a black silhouette until caught), its name ("???" until caught) and a pip per rarity, lit once caught. The footer shows the page reward, the total bonus and pages complete. |
 
 ---
 
@@ -427,7 +440,7 @@ A full 5-ring map holds 770 freaks (about 2,600 at 10 rings), so ring count must
 
 ### Studio-only debug commands
 
-For playtesting, available only when `RunService:IsStudio()` is true: set money, set highest tier, set any upgrade level, spawn a freak of a given tier and rarity next to the player. Use these to test Rings 2 and 3 before gates exist.
+For playtesting, available only when `RunService:IsStudio()` is true: set money, set highest tier, set any upgrade level, spawn a freak of a given tier and rarity next to the player. `/time day|dusk|night|dawn` jumps the day/night cycle for everyone. The full list is at the top of `DebugService.luau`. Use these to test Rings 2 and 3 before gates exist.
 
 ### Code layout
 
@@ -448,6 +461,9 @@ src/
       Wheel.luau         odds
       Products.luau      product and game pass IDs
       Biomes.luau        each zone's ground, walls and lighting
+      DayNight.luau      day/night cycle lengths, sun times and the night look
+      Freakpedia.luau    collection rewards
+      Release.luau       how many tiers this build ships (rings past it stay locked)
       Sounds.luau        sound effect IDs and volumes
     Formulas.luau        income, sellPrice, holdTime, radiation, upgradeCost, itemPrice, zoneFromPosition
     Remotes.luau         creates and exposes all RemoteEvents/Functions
@@ -461,13 +477,15 @@ src/
     ShopService.luau     upgrades, items, selling
     ItemService.luau     net launcher, bear trap
     GateService.luau     turn-ins, tier unlocks
+    FreakpediaService.luau  records new entries, pays discovery rewards
     WheelService.luau
     MonetizationService.luau
     DebugService.luau    Studio-only commands
   client/            -> StarterPlayerScripts
     FreakRenderer.luau   moves freak models along their waypoints
     DoorController.luau  per-player door state
-    BiomeController.luau per-zone lighting
+    BiomeController.luau per-zone lighting and the day/night cycle
+    FreakpediaController.luau  the Freakpedia button and panel
     FeedbackController.luau  grab/money sounds and sparkles, radiation geiger loop
     UiScaleController.luau   shrinks every ScreenGui on small (phone) screens
     Sfx.luau             plays one-shot sound effects
@@ -475,6 +493,7 @@ src/
 tools/               -> ServerStorage.Tools (Studio-only builders, never run in game)
   BuildMap.luau        walls, doors, shop, farm plots, lab floor
   BuildBiomes.luau     terrain, wall cladding, biome props
+  BuildShowcase.luau   every freak on a stage above the lab, for thumbnails (delete Workspace.Showcase before publishing)
 ```
 
 Run a tool from the edit DataModel with `require(game.ServerStorage.Tools.<Name>:Clone())`, then save the place.
@@ -505,6 +524,7 @@ One record per player, saved with **ProfileStore** (decided in Milestone 6) for 
   ownedSkins = {},                    -- skin set keys; Game Passes are re-checked on join
   equippedSkin = "",                  -- "" for none
   processedReceipts = {},             -- last 50 purchase IDs
+  freakpedia = {},                    -- species -> rarities caught, e.g. { Glowbug = { "Common", "Rare" } }
 }
 ```
 
@@ -548,7 +568,6 @@ Build in this order. Do not start a milestone until the previous one passes its 
 - More or different rarities
 - Radiation that ramps up the longer you stay in a ring
 - Freaks that flee or fight back in higher tiers
-- A collection index with rewards for catching every species at every rarity
 - Trading or stealing between players
 - A rebirth system
 - Leaderboards

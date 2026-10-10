@@ -36,7 +36,7 @@ local function decode(attribute: string): { any }
 end
 
 function GateController.start()
-	local panel = UiKit.panel("GatePanel", "Gate")
+	local panel = UiKit.panel("GatePanel", "Gate", UiKit.accents.gate)
 	local open = false
 
 	local function render()

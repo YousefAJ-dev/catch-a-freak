@@ -13,6 +13,8 @@ local PlayerConfig = require(Config:WaitForChild("Player"))
 local Dash = require(Config:WaitForChild("Dash"))
 local Wheel = require(Config:WaitForChild("Wheel"))
 local Release = require(Config:WaitForChild("Release"))
+local FreakConfig = require(Config:WaitForChild("Freaks"))
+local Freakpedia = require(Config:WaitForChild("Freakpedia"))
 
 local Formulas = {}
 
@@ -125,6 +127,40 @@ end
 
 function Formulas.sellPrice(tier: number, rarityId: string, effects: { any }?): number
 	return Economy.sellIncomeSeconds * Formulas.incomePerSecond(tier, rarityId, effects)
+end
+
+-- Freakpedia progress (Config/Freakpedia). `discovered` maps species name ->
+-- list of rarity ids caught. Returns the pages (tiers) that are complete and
+-- how many shiny entries there are.
+function Formulas.freakpediaProgress(discovered: { [string]: { string } }): ({ number }, number)
+	local pages = {}
+	local shinies = 0
+	for tier, list in FreakConfig.species do
+		local complete = true
+		for _, species in list do
+			local caught = discovered[species.name] or {}
+			for _, rarity in Freakpedia.pageRarities do
+				if not table.find(caught, rarity) then
+					complete = false
+				end
+			end
+			for _, rarity in Freakpedia.shinyRarities do
+				if table.find(caught, rarity) then
+					shinies += 1
+				end
+			end
+		end
+		if complete then
+			table.insert(pages, tier)
+		end
+	end
+	return pages, shinies
+end
+
+-- Permanent farm income multiplier from the Freakpedia, e.g. 1.13 for +13%.
+function Formulas.collectionMultiplier(discovered: { [string]: { string } }): number
+	local pages, shinies = Formulas.freakpediaProgress(discovered)
+	return 1 + #pages * Freakpedia.pageBonus + shinies * Freakpedia.shinyBonus
 end
 
 -- How many incubators a player has unlocked at a Farm Capacity level.

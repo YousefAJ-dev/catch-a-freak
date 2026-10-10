@@ -20,7 +20,7 @@ local PROMPT_RANGE = 12
 local SellController = {}
 
 function SellController.start()
-	local panel = UiKit.panel("SellPanel", "Sell Counter")
+	local panel = UiKit.panel("SellPanel", "Sell Counter", UiKit.accents.sell)
 	local open = false
 
 	local function render()

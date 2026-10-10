@@ -10,9 +10,11 @@
 -- `bank` along the walls. A terrain material has one color for the whole map,
 -- so each material belongs to a single biome.
 
--- Daytime biomes keep the sun near noon at the equator: the walls are 120
--- studs tall, and a lower sun leaves most of a ring's floor in their shadow.
--- Mood comes from the haze and color grading instead.
+-- `lighting` is each zone's daytime look; the day/night cycle (Config/DayNight)
+-- moves the sun and blends toward night from it. Daytime keeps the sun fairly
+-- high at the equator: the walls are 120 studs tall, and a lower sun leaves
+-- most of a ring's floor in their shadow. Mood comes from the haze and color
+-- grading instead. `clockTime` is only used by zones with fixedLighting.
 export type Lighting = {
 	clockTime: number,
 	latitude: number, -- Lighting.GeographicLatitude
@@ -33,6 +35,7 @@ export type Biome = {
 	bank: Surface?, -- terrain banked against the walls, or nil for none
 	wall: Surface?, -- cladding on this zone's side of its walls
 	lighting: Lighting,
+	fixedLighting: boolean?, -- ignores the day/night cycle (Config/DayNight)
 }
 
 local Biomes: { [number]: Biome } = {
@@ -108,8 +111,9 @@ local Biomes: { [number]: Biome } = {
 		patches = { { material = Enum.Material.Basalt, color = Color3.fromRGB(52, 49, 64) } },
 		bank = { material = Enum.Material.Basalt, color = Color3.fromRGB(52, 49, 64) },
 		wall = { material = Enum.Material.Rock, color = Color3.fromRGB(72, 68, 86) },
-		-- Night, so the crystals and mushrooms glow, but with strong ambient
-		-- light so freaks stay easy to see.
+		-- Always night, so the crystals and mushrooms glow, but with strong
+		-- ambient light so freaks stay easy to see.
+		fixedLighting = true,
 		lighting = {
 			clockTime = 0,
 			latitude = 0,

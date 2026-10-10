@@ -7,7 +7,7 @@
 -- incubator `pad` it sits in) and are mirrored to the client as attributes:
 --   "PlotIndex"   which plot they own
 --   "Farm"        JSON array of placed freaks
---   "FarmIncome"  total income per second
+--   "FarmIncome"  total income per second, with the Freakpedia bonus and 2x Money
 --   "FarmCapacity" unlocked incubators
 --   "Uncollected" money waiting on the collection pad
 --   "OnOwnPlot"   standing on (or in front of) their plot; opens the farm panel
@@ -96,12 +96,13 @@ local function capacityOf(player: Player?): number
 	return Formulas.farmCapacity(if data then data.upgrades.farmCapacity else 0)
 end
 
-local function incomeOf(farm: { FarmFreak }): number
+-- The farm's income per second, with the Freakpedia bonus (not 2x Money).
+local function incomeOf(data: DataService.Data): number
 	local total = 0
-	for _, record in farm do
+	for _, record in data.farm :: { FarmFreak } do
 		total += Formulas.incomePerSecond(record.tier, record.rarity, record.effects)
 	end
-	return total
+	return total * Formulas.collectionMultiplier(data.freakpedia)
 end
 
 local function refreshIncubators(plot: Plot)
@@ -120,7 +121,7 @@ local function updatePool(player: Player, plot: Plot)
 		return
 	end
 	-- What the farm actually earns right now, including 2x Money.
-	local income = incomeOf(data.farm :: { FarmFreak }) * Formulas.moneyMultiplier(data.boost2xSecondsLeft)
+	local income = incomeOf(data) * Formulas.moneyMultiplier(data.boost2xSecondsLeft)
 	player:SetAttribute("Uncollected", data.uncollected)
 	player:SetAttribute("FarmIncome", income)
 	setValueSign(plot, data.uncollected, income)
@@ -382,7 +383,7 @@ function FarmService.applyOfflineEarnings(player: Player, secondsAway: number): 
 	if not (plot and data) then
 		return 0
 	end
-	local income = incomeOf(data.farm :: { FarmFreak })
+	local income = incomeOf(data)
 	local earned = Formulas.offlineEarnings(income, secondsAway, data.upgrades.offlineCapacity)
 	if earned <= 0 then
 		return 0
@@ -516,7 +517,7 @@ function FarmService.start()
 			for player, plot in plotOf do
 				local data = DataService.get(player)
 				if data then
-					data.uncollected += incomeOf(data.farm :: { FarmFreak }) * Formulas.moneyMultiplier(data.boost2xSecondsLeft) * INCOME_TICK
+					data.uncollected += incomeOf(data) * Formulas.moneyMultiplier(data.boost2xSecondsLeft) * INCOME_TICK
 					updatePool(player, plot)
 				end
 			end

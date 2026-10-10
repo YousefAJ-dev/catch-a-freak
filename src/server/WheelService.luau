@@ -15,6 +15,7 @@ local Economy = require(Shared.Config.Economy)
 local FreakConfig = require(Shared.Config.Freaks)
 local DataService = require(script.Parent.DataService)
 local CarryService = require(script.Parent.CarryService)
+local FreakpediaService = require(script.Parent.FreakpediaService)
 
 local CHECK_INTERVAL = 0.25
 
@@ -74,6 +75,7 @@ local function onSpin(player: Player)
 
 	local index, tier, rarity, species = WheelService.roll(data.highestTier)
 	CarryService.add(player, { species = species, tier = tier, rarity = rarity, effects = {} })
+	FreakpediaService.record(player, { species = species, tier = tier, rarity = rarity })
 	DataService.refresh(player)
 	Remotes.WheelResult:FireClient(player, index, tier, rarity, species)
 	print(("[Wheel] %s won %s %s %s (tier %d, worth %s)"):format(player.Name, Format.article(rarity), rarity, species, tier, Format.money(Formulas.sellPrice(tier, rarity))))
