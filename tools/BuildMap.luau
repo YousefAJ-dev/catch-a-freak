@@ -106,7 +106,6 @@ local function buildWall(map: Instance, wall: any)
 	end
 	model.Parent = map
 
-	local isBarrier = wall.doorKind == "Opening"
 	local thickness = World.wallThickness
 	local overlap = 1 -- each slab pokes past its neighbours so the joints have no gaps
 
@@ -155,10 +154,8 @@ local function buildWall(map: Instance, wall: any)
 				Name = "Segment",
 				CFrame = cf,
 				Size = size,
-				Color = isBarrier and Color3.fromRGB(80, 220, 255) or Color3.fromRGB(110, 110, 120),
-				Material = isBarrier and Enum.Material.ForceField or Enum.Material.Concrete,
-				Transparency = isBarrier and 0.2 or 0,
-				CastShadow = not isBarrier,
+				Color = Color3.fromRGB(110, 110, 120),
+				Material = Enum.Material.Concrete,
 				Parent = model,
 			})
 		end
@@ -188,6 +185,48 @@ local function buildWall(map: Instance, wall: any)
 	end
 end
 
+local wheelModule = game:GetService("ReplicatedStorage").Shared.Config.Wheel:Clone()
+local Wheel = require(wheelModule) :: any
+wheelModule:Destroy()
+
+-- A flat triangle a, b, c made of two wedges, `thickness` thick, lying on
+-- the plane and offset toward `normal`.
+local function triangle(parent: Instance, a: Vector3, b: Vector3, c: Vector3, normal: Vector3, color: Color3, name: string)
+	local thickness = 0.1
+	-- Use the longest edge as the base, from b to c, with a opposite it.
+	local ab, ac, bc = (b - a).Magnitude, (c - a).Magnitude, (c - b).Magnitude
+	if ab > ac and ab > bc then
+		a, c = c, a
+	elseif ac > bc and ac > ab then
+		a, b = b, a
+	end
+	local edge = (c - b).Unit
+	local foot = b + edge * (a - b):Dot(edge) -- a projected onto the base
+	local up = (a - foot).Unit
+	local height = (a - foot).Magnitude
+	-- Two right triangles, each with its right angle at the foot.
+	for _, corner in { b, c } do
+		local length = (foot - corner).Magnitude
+		if length > 0.01 then
+			-- A wedge's cross-section has its right angle at bottom-back (+Z)
+			-- and its point at bottom-front (-Z): the foot goes at the back,
+			-- the corner at the front, the apex at the top.
+			local back = (foot - corner).Unit
+			local center = (corner + foot) / 2 + up * height / 2 + normal * thickness / 2
+			local wedge = Instance.new("WedgePart")
+			wedge.Name = name
+			wedge.Anchored = true
+			wedge.CanCollide = false
+			wedge.CastShadow = false
+			wedge.Material = Enum.Material.SmoothPlastic
+			wedge.Color = color
+			wedge.Size = Vector3.new(thickness, height, length)
+			wedge.CFrame = CFrame.fromMatrix(center, up:Cross(back), up, back)
+			wedge.Parent = parent
+		end
+	end
+end
+
 local function buildShop(map: Instance)
 	local shop = Instance.new("Model")
 	shop.Name = "Shop"
@@ -212,40 +251,97 @@ local function buildShop(map: Instance)
 		{ name = "SellCounter", text = "SELL", angle = 135, color = Color3.fromRGB(80, 220, 100) },
 		{ name = "GateCounter", text = "GATE", angle = 225, color = Color3.fromRGB(230, 80, 80) },
 	}
+	-- Each counter is an invisible marker: the prompts and range checks use
+	-- its position, and tools/BuildBiomes.luau builds a stall around it.
 	for _, c in counters do
 		local pos = pointAt(26, c.angle, floorY + 2)
 		local counter = part({
 			Name = c.name,
 			CFrame = CFrame.lookAt(pos, Vector3.new(World.center.X, pos.Y, World.center.Z)),
 			Size = Vector3.new(12, 4, 4),
-			Color = c.color,
+			Transparency = 1,
+			CanCollide = false,
 			Parent = shop,
 		})
-		label(counter, c.text, 5, c.color)
+		label(counter, c.text, 12, c.color)
 	end
 
-	-- Daily wheel: a standing disc on a post.
+	-- Daily wheel: a disc of prize segments on a wooden A-frame, with a
+	-- pointer at the top. The disc and its segments are the "Spinner" model,
+	-- which WheelController turns about the disc's axis. Segments are laid out
+	-- so that turning the wheel by fraction f of a full turn puts the prize at
+	-- fraction f of the odds strip (see Config/Wheel) under the pointer.
 	local wheelBase = pointAt(26, 315, floorY)
 	local facing = CFrame.lookAt(wheelBase, Vector3.new(World.center.X, wheelBase.Y, World.center.Z))
 	local wheel = Instance.new("Model")
 	wheel.Name = "DailyWheel"
 	wheel.Parent = shop
+	local wood = Color3.fromRGB(110, 75, 45)
+	local brass = Color3.fromRGB(190, 150, 70)
+	local hubHeight, radius = 10, 6
+
+	part({ Name = "Base", CFrame = facing * CFrame.new(0, 0.5, 0.5), Size = Vector3.new(10, 1, 4), Color = wood, Material = Enum.Material.WoodPlanks, Parent = wheel })
+	for _, side in { -1, 1 } do
+		local foot = (facing * CFrame.new(side * 4, 1, 1)).Position
+		local top = (facing * CFrame.new(0, hubHeight, 1)).Position
+		part({
+			Name = "Leg",
+			CFrame = CFrame.lookAt((foot + top) / 2, top) * CFrame.Angles(math.rad(90), 0, 0),
+			Size = Vector3.new(0.9, (top - foot).Magnitude, 0.9),
+			Color = wood,
+			Material = Enum.Material.Wood,
+			Parent = wheel,
+		})
+	end
 	part({
-		Name = "Post",
-		CFrame = facing * CFrame.new(0, 4, 0),
-		Size = Vector3.new(1.5, 8, 1.5),
-		Color = Color3.fromRGB(60, 60, 60),
+		Name = "Pointer",
+		CFrame = facing * CFrame.new(0, hubHeight + radius + 0.6, -0.8) * CFrame.Angles(0, 0, math.rad(45)),
+		Size = Vector3.new(1.2, 1.2, 0.4),
+		Color = Color3.fromRGB(200, 40, 40),
+		Material = Enum.Material.SmoothPlastic,
 		Parent = wheel,
 	})
+
+	local spinner = Instance.new("Model")
+	spinner.Name = "Spinner"
+	spinner.Parent = wheel
 	local disk = part({
 		Name = "Wheel",
 		Shape = Enum.PartType.Cylinder,
 		-- Cylinder axis is X; rotate so the face points at the shop center.
-		CFrame = facing * CFrame.new(0, 10, -1) * CFrame.Angles(0, math.rad(90), 0),
-		Size = Vector3.new(1, 12, 12),
-		Color = Color3.fromRGB(170, 90, 230),
-		Material = Enum.Material.Neon,
-		Parent = wheel,
+		CFrame = facing * CFrame.new(0, hubHeight, -0.2) * CFrame.Angles(0, math.rad(90), 0),
+		Size = Vector3.new(0.8, radius * 2 + 0.6, radius * 2 + 0.6),
+		Color = brass,
+		Material = Enum.Material.Metal,
+		Parent = spinner,
+	})
+	spinner.PrimaryPart = disk
+
+	-- Segments: flat triangles on the disc's front face, each prize's share
+	-- of the odds split into slices of at most 15 degrees.
+	local face = disk.CFrame * CFrame.new(0.45, 0, 0) -- front face center; +X points at the shop
+	local function rim(fraction: number): Vector3
+		local theta = -2 * math.pi * fraction
+		return (face * CFrame.new(0, math.cos(theta) * radius, math.sin(theta) * radius)).Position
+	end
+	local start = 0
+	for i, prize in Wheel.prizes do
+		local slices = math.max(1, math.ceil(prize.chance * 360 / 15))
+		for k = 0, slices - 1 do
+			local f1 = start + prize.chance * k / slices
+			local f2 = start + prize.chance * (k + 1) / slices
+			triangle(spinner, face.Position, rim(f1), rim(f2), face.XVector, prize.color, ("Segment%d"):format(i))
+		end
+		start += prize.chance
+	end
+	part({
+		Name = "Hub",
+		Shape = Enum.PartType.Cylinder,
+		CFrame = disk.CFrame * CFrame.new(0.6, 0, 0),
+		Size = Vector3.new(0.6, 2, 2),
+		Color = brass,
+		Material = Enum.Material.Metal,
+		Parent = spinner,
 	})
 	label(disk, "DAILY WHEEL", 9, Color3.fromRGB(200, 140, 255))
 end

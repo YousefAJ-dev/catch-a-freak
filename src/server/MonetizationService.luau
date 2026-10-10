@@ -12,7 +12,7 @@
 --   Extra Spin     one more daily-wheel spin. Paid spins are "paid random
 --                  items": hidden for players whose policy restricts them
 --   Revive         offered for a few seconds after dying with freaks; restores
---                  the carry bar and respawns the player at the shop
+--                  the carry bar and respawns the player at their farm
 --   Skin sets      Game Passes; ownership is saved and one can be equipped
 --                  (the looks arrive with the art in Milestone 10)
 --
@@ -64,7 +64,7 @@ local GRANTS: { [string]: (Player) -> () } = {
 		heldForRevive[player] = nil
 		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
 		if not humanoid or humanoid.Health <= 0 then
-			player:LoadCharacter() -- respawn at the shop right away
+			player:LoadCharacter() -- respawn at their farm right away
 		end
 		if held then
 			CarryService.restore(player, held.freaks)

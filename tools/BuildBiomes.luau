@@ -124,6 +124,9 @@ local PROP_MESHES = {
 	mushrooms = { mesh = "rbxassetid://75807441907262", texture = "rbxassetid://77642159859702" },
 	chemicalTank = { mesh = "rbxassetid://85973143778239", texture = "rbxassetid://98055436336708" },
 	toxicBarrel = { mesh = "rbxassetid://115292107387822", texture = "rbxassetid://87474353778075" },
+	shopStall = { mesh = "rbxassetid://113758848730950", texture = "rbxassetid://83054520765255" },
+	sellStall = { mesh = "rbxassetid://134377988342000", texture = "rbxassetid://82776239401599" },
+	gateStation = { mesh = "rbxassetid://107639323938824", texture = "rbxassetid://89595372652864" },
 }
 
 local templates: { [string]: MeshPart } = {}
@@ -857,10 +860,46 @@ local function labVat(parent: Instance, cf: CFrame)
 	return m
 end
 
+-- A horizontal band around the inside of the safe-zone barrier, in chord
+-- segments, broken at the four openings. `colorAt(i)` colors segment i.
+local function barrierBand(parent: Instance, y: number, height: number, depth: number, count: number, material: Enum.Material, colorAt: (number) -> Color3)
+	local radius = World.safeRadius - THICK / 2 - depth / 2 - 0.25
+	for i = 0, count - 1 do
+		local a1, a2 = 360 * i / count, 360 * (i + 1) / count
+		local p1, p2 = pointAt(radius, a1), pointAt(radius, a2)
+		local mid = (p1 + p2) / 2
+		local rel = mid - World.center
+		if math.abs(rel.X) > World.doorWidth / 2 + 1 and math.abs(rel.Z) > World.doorWidth / 2 + 1 then
+			part({
+				Name = "Band",
+				Size = Vector3.new(depth, height, (p2 - p1).Magnitude + 0.05),
+				CFrame = CFrame.lookAt(mid + Vector3.new(0, y, 0), mid + Vector3.new(0, y, 0) + (p2 - p1).Unit),
+				Color = colorAt(i),
+				Material = material,
+				decor = true,
+				Parent = parent,
+			})
+		end
+	end
+end
+
 local function buildLab(folder: Instance)
 	local shopRadius = World.zones[1].outerRadius
 	hazardRing(folder, shopRadius, 2, 64)
 	hazardRing(folder, World.safeRadius - THICK / 2 - 2, 3, 120)
+
+	-- The barrier's lab side: a hazard-striped band near the floor, a glowing
+	-- containment light strip, and a dark trim along the top.
+	local barrierHeight = World.barrierHeight
+	barrierBand(folder, 5, 3, 0.4, 160, Enum.Material.SmoothPlastic, function(i)
+		return if i % 2 == 0 then HAZARD_YELLOW else HAZARD_BLACK
+	end)
+	barrierBand(folder, barrierHeight * 0.45, 0.8, 0.4, 80, Enum.Material.Neon, function()
+		return Color3.fromRGB(110, 255, 90)
+	end)
+	barrierBand(folder, barrierHeight - 1.5, 3, 0.6, 80, Enum.Material.Metal, function()
+		return Color3.fromRGB(55, 60, 64)
+	end)
 
 	-- Glowing vats and pipes in the gaps between farm plots (the diagonals),
 	-- piping into the barrier.
@@ -875,6 +914,18 @@ local function buildLab(folder: Instance)
 		local to = pointAt(World.safeRadius - THICK / 2 - 0.5, angle) + Vector3.new(0, 13.2, 0)
 		rod(from, to, 1.6, { Name = "Pipe", Color = Color3.fromRGB(150, 155, 160), Material = Enum.Material.Metal, Parent = folder })
 		rod(pointAt(plotRadius - 8, angle) + Vector3.new(0, 13.2, 0), from, 1.6, { Name = "Pipe", Color = Color3.fromRGB(150, 155, 160), Material = Enum.Material.Metal, Parent = folder })
+	end
+
+	-- Stalls around the shop's counters, which BuildMap leaves invisible. A
+	-- counter faces the map center; its stall stands just behind it, facing
+	-- the same way, so players walk up to the stall's front.
+	local shop = workspace.Map:FindFirstChild("Shop")
+	for _, stall in { { counter = "UpgradeCounter", mesh = "shopStall", height = 13 }, { counter = "SellCounter", mesh = "sellStall", height = 13 }, { counter = "GateCounter", mesh = "gateStation", height = 11 } } do
+		local counter = shop and shop:FindFirstChild(stall.counter) :: BasePart?
+		if counter then
+			local ground = counter.CFrame * CFrame.new(0, -counter.Size.Y / 2, 1.5)
+			meshProp(stall.mesh, folder, ground, stall.height)
+		end
 	end
 end
 
@@ -1025,13 +1076,14 @@ local function buildTerrain(rings: { any })
 end
 
 ------------------------------------------------------------------------------
--- Wall cladding: each side of a tier wall dressed in its ring's material.
+-- Wall cladding: each side of every wall dressed in its zone's material (the
+-- safe-zone barrier gets the lab's on its inner side).
 
 local function buildCladding(map: Instance, folder: Instance)
 	for _, wall in World.walls do
 		local wallModel = map:FindFirstChild(wall.name)
-		if not wallModel or wall.doorKind == "Opening" then
-			continue -- the safe-zone barrier is a force field, left as it is
+		if not wallModel then
+			continue
 		end
 		for _, segment in wallModel:GetChildren() do
 			if not segment:IsA("BasePart") or segment.Name ~= "Segment" then
@@ -1042,8 +1094,8 @@ local function buildCladding(map: Instance, folder: Instance)
 				local outward = (segment.CFrame.RightVector * sign):Dot(segment.Position - World.center) > 0
 				local tier
 				for _, zone in World.zones do
-					if zone.tier and (if outward then zone.innerRadius else zone.outerRadius) == wall.radius then
-						tier = zone.tier
+					if (if outward then zone.innerRadius else zone.outerRadius) == wall.radius then
+						tier = zone.tier or 0 -- the safe zone's biome is 0
 					end
 				end
 				local biome = tier and Biomes[tier]

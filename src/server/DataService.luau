@@ -17,6 +17,7 @@
 -- tables mixing number and string keys, and no arrays with gaps.
 
 local HttpService = game:GetService("HttpService")
+local AnalyticsService = game:GetService("AnalyticsService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -24,6 +25,7 @@ local RunService = game:GetService("RunService")
 local Upgrades = require(ReplicatedStorage.Shared.Config.Upgrades)
 local Tiers = require(ReplicatedStorage.Shared.Config.Tiers)
 local FreakConfig = require(ReplicatedStorage.Shared.Config.Freaks)
+local Gates = require(ReplicatedStorage.Shared.Config.Gates)
 local ProfileStore = require(script.Parent.Vendor.ProfileStore)
 
 local STORE_NAME = "PlayerData"
@@ -35,7 +37,9 @@ export type Data = {
 	upgrades: { [string]: number },
 	items: { [string]: number },
 	highestTier: number,
-	gateProgress: { boolean },
+	gateProgress: { number }, -- freaks turned in for each requirement of the current gate
+	playSeconds: number, -- total time played, for tuning progression
+	tierReachedAt: { [string]: number }, -- tier (as a string) -> playSeconds when it was unlocked
 	farm: { any },
 	uncollected: number,
 	lastSeen: number, -- os.time() at the last save
@@ -57,7 +61,9 @@ local function newData(): Data
 		upgrades = upgrades,
 		items = { netLauncher = 0, bearTrap = 0 },
 		highestTier = 1,
-		gateProgress = { false, false },
+		gateProgress = { 0, 0 },
+		playSeconds = 0,
+		tierReachedAt = { ["1"] = 0 },
 		farm = {},
 		uncollected = 0,
 		lastSeen = 0,
@@ -95,6 +101,18 @@ end
 -- os.time() of the player's previous visit, or 0 if this is their first.
 function DataService.previousLastSeen(player: Player): number
 	return previousLastSeen[player] or 0
+end
+
+-- Play time: each loaded player's clock reading when their play time was last
+-- added to their record.
+local playClock: { [Player]: number } = {}
+
+-- Total seconds played, counting the current session so far.
+local function addPlayTime(player: Player, data: Data): number
+	local now = os.clock()
+	data.playSeconds += now - (playClock[player] or now)
+	playClock[player] = now
+	return data.playSeconds
 end
 
 local function replicate(player: Player, data: Data)
@@ -159,22 +177,53 @@ function DataService.setMoney(player: Player, amount: number)
 	replicate(player, data)
 end
 
--- Changing tier starts the next gate from scratch.
+local function freshGateProgress(tier: number): { number }
+	local progress = {}
+	for i = 1, if Gates[tier] then #Gates[tier].requirements else 0 do
+		progress[i] = 0
+	end
+	return progress
+end
+
+-- Changing tier starts the next gate from scratch. Reaching a tier for the
+-- first time records how long it took, for tuning: in the server log, and as
+-- an analytics event (Creator Hub > Analytics > Custom events).
 function DataService.setHighestTier(player: Player, tier: number)
 	local data = dataOf(player)
 	local newTier = math.clamp(math.floor(tier), 1, #Tiers)
 	if newTier ~= data.highestTier then
-		data.gateProgress = { false, false }
+		data.gateProgress = freshGateProgress(newTier)
+	end
+	local key = tostring(newTier)
+	if newTier > data.highestTier and not data.tierReachedAt[key] then
+		local played = addPlayTime(player, data)
+		data.tierReachedAt[key] = played
+		local previous = data.tierReachedAt[tostring(newTier - 1)]
+		print(
+			("[Progress] %s reached tier %d after %.0f min played%s"):format(
+				player.Name,
+				newTier,
+				played / 60,
+				if previous then (" (Ring %d took %.0f min)"):format(newTier - 1, (played - previous) / 60) else ""
+			)
+		)
+		pcall(AnalyticsService.LogCustomEvent, AnalyticsService, player, ("ReachedTier%d"):format(newTier), played / 60)
 	end
 	data.highestTier = newTier
 	replicate(player, data)
 end
 
--- Marks one requirement of the player's current gate as turned in.
-function DataService.markRequirement(player: Player, index: number)
+-- Counts one more freak turned in for a requirement of the player's current gate.
+function DataService.addRequirementProgress(player: Player, index: number)
 	local data = dataOf(player)
-	data.gateProgress[index] = true
+	data.gateProgress[index] = (data.gateProgress[index] or 0) + 1
 	replicate(player, data)
+end
+
+-- Play time so far, and the play time at which each tier was reached.
+function DataService.progress(player: Player): (number, { [string]: number })
+	local data = dataOf(player)
+	return addPlayTime(player, data), data.tierReachedAt
 end
 
 function DataService.setUpgradeLevel(player: Player, upgradeId: string, level: number)
@@ -264,15 +313,25 @@ local function onPlayerAdded(player: Player)
 	for _, record in profile.Data.farm do
 		record.species = FreakConfig.renamed[record.species] or record.species
 	end
+	-- Gate progress used to be done/not-done flags; it's now a count per
+	-- requirement. A done flag becomes that requirement's full count.
+	local gate = Gates[profile.Data.highestTier]
+	for i, value: any in profile.Data.gateProgress do
+		if typeof(value) == "boolean" then
+			profile.Data.gateProgress[i] = if value and gate and gate.requirements[i] then gate.requirements[i].count else 0
+		end
+	end
 	profile.OnSessionEnd:Connect(function()
 		profiles[player] = nil
 		previousLastSeen[player] = nil
+		playClock[player] = nil
 		if player.Parent == Players then
 			player:Kick("Your data was opened on another server. Please rejoin.")
 		end
 	end)
 	profile.OnSave:Connect(function()
 		profile.Data.lastSeen = os.time()
+		addPlayTime(player, profile.Data)
 	end)
 
 	if player.Parent ~= Players then
@@ -280,6 +339,7 @@ local function onPlayerAdded(player: Player)
 		return
 	end
 	previousLastSeen[player] = profile.Data.lastSeen
+	playClock[player] = os.clock()
 	profiles[player] = profile
 	replicate(player, profile.Data)
 end

@@ -1,6 +1,7 @@
 --!strict
 -- Farm plots (DESIGN.md section 6): plot assignment, placing freaks in
--- incubators and picking them back up, income, and collecting.
+-- incubators and picking them back up, income, and collecting. Players spawn
+-- (and respawn) in front of their own plot, so they always know where it is.
 --
 -- The player's placed freaks live in their data record (`farm`, each with the
 -- incubator `pad` it sits in) and are mirrored to the client as attributes:
@@ -146,6 +147,7 @@ local function showFreak(plot: Plot, record: FarmFreak)
 	if scale < 1 then
 		model:ScaleTo(scale)
 	end
+	FreakModels.decorate(body, record.rarity, scale)
 	-- The incubator is aligned with the plot, whose -Z faces the shop.
 	model:PivotTo(floor.CFrame * CFrame.new(0, floor.Size.Y / 2, 0))
 
@@ -400,6 +402,30 @@ function FarmService.applyOfflineEarnings(player: Player, secondsAway: number): 
 	return earned
 end
 
+-- Puts the character just in front of its owner's plot, past the collection
+-- pad, facing the plot.
+local function sendHome(player: Player)
+	local plot = plotOf[player]
+	local character = player.Character
+	if not (plot and character) then
+		return
+	end
+	local cfg = World.farm
+	local front = plot.base.CFrame * CFrame.new(0, 0, -(cfg.plotSize / 2 + cfg.collectPadGap + cfg.collectPadSize + 4))
+	local position = Vector3.new(front.X, plot.base.Position.Y + plot.base.Size.Y / 2 + 3, front.Z)
+	character:PivotTo(CFrame.lookAt(position, Vector3.new(plot.base.Position.X, position.Y, plot.base.Position.Z)))
+end
+
+local function onCharacterAdded(player: Player, character: Model)
+	character:WaitForChild("HumanoidRootPart")
+	-- Let Roblox finish placing the character at the spawn point first.
+	task.defer(function()
+		if player.Character == character then
+			sendHome(player)
+		end
+	end)
+end
+
 local function claimPlot(player: Player)
 	-- Data loads asynchronously and CarryService creates its record on
 	-- PlayerAdded too; wait for both.
@@ -429,6 +455,11 @@ local function claimPlot(player: Player)
 					refreshIncubators(plot)
 					replicateFarm(player, plot)
 				end
+			end)
+			-- The first character usually spawns before the plot is claimed.
+			sendHome(player)
+			player.CharacterAdded:Connect(function(character)
+				onCharacterAdded(player, character)
 			end)
 			return
 		end

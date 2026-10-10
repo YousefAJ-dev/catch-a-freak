@@ -95,7 +95,7 @@ function WheelService.setExtraSpins(player: Player, count: number)
 end
 
 function WheelService.start()
-	wheelPart = workspace:WaitForChild("Map"):WaitForChild("Shop"):WaitForChild("DailyWheel"):WaitForChild("Wheel") :: BasePart
+	wheelPart = workspace:WaitForChild("Map"):WaitForChild("Shop"):WaitForChild("DailyWheel"):WaitForChild("Spinner"):WaitForChild("Wheel") :: BasePart
 	Remotes.SpinWheel.OnServerEvent:Connect(onSpin)
 
 	task.spawn(function()

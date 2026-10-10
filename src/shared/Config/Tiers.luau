@@ -20,11 +20,11 @@ export type Tier = {
 local RING_1_POPULATION = 70
 
 local Tiers: { Tier } = {
-	{ tier = 1, zone = "Ring1", population = 0, radiationDps = 8, baseIncome = 1, baseHold = 1.0, freakSpeed = 6 },
-	{ tier = 2, zone = "Ring2", population = 0, radiationDps = 16, baseIncome = 10, baseHold = 2.0, freakSpeed = 9 },
-	{ tier = 3, zone = "Ring3", population = 0, radiationDps = 32, baseIncome = 100, baseHold = 3.5, freakSpeed = 12 },
-	{ tier = 4, zone = "Ring4", population = 0, radiationDps = 64, baseIncome = 1000, baseHold = 5.5, freakSpeed = 14 },
-	{ tier = 5, zone = "Ring5", population = 0, radiationDps = 128, baseIncome = 10000, baseHold = 8.0, freakSpeed = 16 },
+	{ tier = 1, zone = "Ring1", population = 0, radiationDps = 6, baseIncome = 1, baseHold = 1.0, freakSpeed = 6 },
+	{ tier = 2, zone = "Ring2", population = 0, radiationDps = 16, baseIncome = 8, baseHold = 2.0, freakSpeed = 9 },
+	{ tier = 3, zone = "Ring3", population = 0, radiationDps = 32, baseIncome = 75, baseHold = 3.5, freakSpeed = 12 },
+	{ tier = 4, zone = "Ring4", population = 0, radiationDps = 64, baseIncome = 750, baseHold = 5.5, freakSpeed = 14 },
+	{ tier = 5, zone = "Ring5", population = 0, radiationDps = 128, baseIncome = 7500, baseHold = 8.0, freakSpeed = 16 },
 }
 
 -- Population = Ring 1's density × the ring's area: 70, 112, 154, 196, 238.

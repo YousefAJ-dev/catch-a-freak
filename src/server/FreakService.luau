@@ -205,6 +205,7 @@ local function spawnFreak(species: FreakConfig.Species, rarity: Rarities.Rarity,
 	nextId += 1
 	local id = tostring(nextId)
 	local model, body = FreakModels.build(species)
+	FreakModels.decorate(body, rarity.id)
 	model.Name = ("%s_%s_%s"):format(rarity.id, species.name, id)
 	model:SetAttribute("FreakId", id)
 	model:SetAttribute("Species", species.name)

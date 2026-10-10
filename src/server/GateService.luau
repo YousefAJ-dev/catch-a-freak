@@ -1,9 +1,11 @@
 --!strict
 -- Progression gates (DESIGN.md section 8). At the gate counter the player turns
--- in freaks, from their carry bar or straight from their farm, for the two
--- requirements of their current gate. Turned-in freaks are consumed and
--- progress is saved. Completing both requirements unlocks the next tier, which
--- opens that ring's doors for this player only (client DoorController).
+-- in freaks, from their carry bar or straight from their farm, toward the
+-- requirements of their current gate (each asks for a number of one species
+-- at a rarity or better). Turned-in freaks are consumed and progress is saved.
+-- Completing every requirement unlocks the next tier, which opens that ring's
+-- doors for this player only (client DoorController). A gate to a ring this
+-- build doesn't include yet (Config/Release) can't be worked on.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -14,6 +16,7 @@ local Format = require(Shared.Format)
 local Remotes = require(Shared.Remotes)
 local Gates = require(Shared.Config.Gates)
 local Economy = require(Shared.Config.Economy)
+local Release = require(Shared.Config.Release)
 local DataService = require(script.Parent.DataService)
 local CarryService = require(script.Parent.CarryService)
 local FarmService = require(script.Parent.FarmService)
@@ -53,6 +56,10 @@ local function onTurnIn(player: Player, requirementIndex: any, source: any, inde
 		notify(player, "Every ring is already unlocked")
 		return
 	end
+	if gate.unlocksTier > Release.releasedTiers then
+		notify(player, ("Ring %d opens in a later update"):format(gate.unlocksTier))
+		return
+	end
 	if not isWholeNumber(requirementIndex, 1, #gate.requirements) or (source ~= "carry" and source ~= "farm") or not isWholeNumber(index, 1, 64) then
 		return
 	end
@@ -60,12 +67,12 @@ local function onTurnIn(player: Player, requirementIndex: any, source: any, inde
 		notify(player, "Go to the gate counter to turn in freaks")
 		return
 	end
-	if data.gateProgress[requirementIndex] then
+	local requirement = gate.requirements[requirementIndex]
+	if (data.gateProgress[requirementIndex] or 0) >= requirement.count then
 		notify(player, "That requirement is already done")
 		return
 	end
 
-	local requirement = gate.requirements[requirementIndex]
 	local freak = if source == "carry" then (CarryService.get(player) or {})[index] else FarmService.getFreak(player, index)
 	if not freak then
 		return
@@ -79,15 +86,15 @@ local function onTurnIn(player: Player, requirementIndex: any, source: any, inde
 	if not taken then
 		return
 	end
-	DataService.markRequirement(player, requirementIndex)
-	notify(player, ("Turned in %s %s"):format(taken.rarity, taken.species))
+	DataService.addRequirementProgress(player, requirementIndex)
+	notify(player, ("Turned in %s %s (%d/%d)"):format(taken.rarity, taken.species, data.gateProgress[requirementIndex], requirement.count))
 
-	for i = 1, #gate.requirements do
-		if not data.gateProgress[i] then
+	for i, other in gate.requirements do
+		if (data.gateProgress[i] or 0) < other.count then
 			return
 		end
 	end
-	-- Both requirements done: unlock the next ring.
+	-- Every requirement done: unlock the next ring.
 	DataService.setHighestTier(player, gate.unlocksTier)
 	Remotes.Popup:FireClient(
 		player,

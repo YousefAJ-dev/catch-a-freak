@@ -40,8 +40,9 @@ local trails: { [Player]: Trail } = {}
 local folder: Folder
 
 local function buildMini(species: string, rarityId: string, at: Vector3): Mini
-	local model = FreakModels.build(FreakModels.species(species))
+	local model, body = FreakModels.build(FreakModels.species(species))
 	model:ScaleTo(SCALE)
+	FreakModels.decorate(body, rarityId, SCALE)
 	local root = model.PrimaryPart :: BasePart
 	local size = model:GetExtentsSize()
 

@@ -39,6 +39,7 @@ local Biomes: { [number]: Biome } = {
 	[0] = {
 		name = "Radioactive Lab",
 		ground = { material = Enum.Material.Concrete, color = Color3.fromRGB(88, 96, 92) },
+		wall = { material = Enum.Material.DiamondPlate, color = Color3.fromRGB(105, 112, 116) }, -- the barrier's inner side
 		lighting = {
 			clockTime = 13,
 			latitude = 0,

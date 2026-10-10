@@ -1,6 +1,6 @@
 --!strict
 -- Consumable items from DESIGN.md section 7.
--- Price = basePrice × 10 ^ (highestTier − 1) (see Formulas.itemPrice).
+-- Price = basePrice × 15 ^ (highestTier − 1) (see Formulas.itemPrice).
 
 export type Item = {
 	id: string, -- key in the saved `items` table

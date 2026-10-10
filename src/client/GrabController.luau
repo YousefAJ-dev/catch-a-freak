@@ -1,7 +1,8 @@
 --!strict
 -- Grabbing, client side: sets each freak prompt's range and hold time for this
--- player's Grip level, and shows the grab bar while the input is held. The server
--- (FreakService) times the hold itself and decides whether the grab counts.
+-- player's Grip level, hides the prompts while the player is dead, and shows
+-- the grab bar while the input is held. The server (FreakService) times the
+-- hold itself and decides whether the grab counts.
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -30,6 +31,11 @@ end
 -- Sets this player's grab range and hold time on a freak prompt. The server's
 -- copy is deliberately loose (see FreakService); these local values are what
 -- the player actually experiences.
+local function alive(): boolean
+	local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+	return humanoid ~= nil and humanoid.Health > 0
+end
+
 local function applyPromptSettings(prompt: ProximityPrompt)
 	local model = freakOf(prompt)
 	if not model then
@@ -40,7 +46,7 @@ local function applyPromptSettings(prompt: ProximityPrompt)
 	prompt.MaxActivationDistance = FreakConfig.grabRange
 	-- A freak pinned by a bear trap is a quick grab for the trap's owner and
 	-- off limits to everyone else (the server enforces both).
-	prompt.Enabled = pinnedBy == nil or pinnedBy == player.UserId
+	prompt.Enabled = alive() and (pinnedBy == nil or pinnedBy == player.UserId)
 	prompt.HoldDuration = if pinnedBy == player.UserId
 		then Items.bearTrap.pinnedHold
 		else Formulas.holdTime(model:GetAttribute("Tier") :: number, model:GetAttribute("Rarity") :: string, grip)
@@ -115,6 +121,16 @@ function GrabController.start()
 		end
 	end
 	player:GetAttributeChangedSignal("Upgrade_grip"):Connect(applyToAll)
+	-- No grabbing while dead: hide the prompts on death, show them on respawn.
+	local function watchCharacter(character: Model)
+		local humanoid = character:WaitForChild("Humanoid") :: Humanoid
+		humanoid.Died:Connect(applyToAll)
+		applyToAll()
+	end
+	player.CharacterAdded:Connect(watchCharacter)
+	if player.Character then
+		task.spawn(watchCharacter, player.Character)
+	end
 	applyToAll()
 
 	local function stop(prompt: ProximityPrompt)

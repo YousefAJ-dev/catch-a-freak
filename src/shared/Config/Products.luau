@@ -22,8 +22,8 @@ local developerProducts: { [string]: DevProduct } = {
 	money2x = {
 		key = "money2x",
 		id = -1,
-		name = "2x Money (1 hour)",
-		description = "Doubles farm income and sell payouts for 60 minutes of play time",
+		name = "2x Money (2 hour)",
+		description = "Doubles farm income and sell payouts for 120 minutes of play time",
 	},
 	extraSpin = {
 		key = "extraSpin",
@@ -81,7 +81,7 @@ local skinSets: { SkinSet } = {
 return {
 	developerProducts = developerProducts,
 	skinSets = skinSets,
-	boostSeconds = 3600, -- per 2x Money purchase; stacks
+	boostSeconds = 7200, -- per 2x Money purchase (2 hours); stacks
 	reviveOfferSeconds = 10, -- how long the offer stays on screen after dying
 	-- How long a dead player's freaks are held for a revive purchase. Longer
 	-- than the offer so a purchase dialog opened in time can still finish.

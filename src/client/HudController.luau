@@ -2,6 +2,7 @@
 -- HUD: money, health bar, and a radiation warning while in a ring. Display
 -- only; the server owns money (DataService) and health (RadiationService).
 
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -9,6 +10,7 @@ local StarterGui = game:GetService("StarterGui")
 
 local Formulas = require(ReplicatedStorage.Shared.Formulas)
 local Format = require(ReplicatedStorage.Shared.Format)
+local Rarities = require(ReplicatedStorage.Shared.Config.Rarities)
 
 local player = Players.LocalPlayer
 
@@ -153,18 +155,33 @@ function HudController.start()
 	player:GetAttributeChangedSignal("Boost2xSecondsLeft"):Connect(updateBoost)
 	updateBoost()
 
+	-- HP per second from carried radioactive freaks (RadiationService).
+	local function carriedDamage(): number
+		local ok, slots = pcall(HttpService.JSONDecode, HttpService, (player:GetAttribute("Carry") :: string?) or "[]")
+		local total = 0
+		for _, freak in if ok then slots else {} do
+			local rarity = freak and Rarities.byId[freak.rarity]
+			total += rarity and rarity.damagePerSecond or 0
+		end
+		return total
+	end
+
 	local function updateWarning()
 		local tier = (player:GetAttribute("ZoneTier") :: number?) or 0
-		warning.Visible = tier > 0
+		local carried = carriedDamage()
+		warning.Visible = tier > 0 or carried > 0
+		local hazmat = (player:GetAttribute("Upgrade_hazmat") :: number?) or 0
+		-- One decimal at most, without a trailing ".0" (3.6, 6 rather than 3.5999…, 6.0).
+		local dps = ("%.1f"):format((if tier > 0 then Formulas.radiationDps(tier, hazmat) else 0) + carried):gsub("%.0$", "")
 		if tier > 0 then
-			local hazmat = (player:GetAttribute("Upgrade_hazmat") :: number?) or 0
-			-- One decimal at most, without a trailing ".0" (3.6, 6 rather than 3.5999…, 6.0).
-			local dps = ("%.1f"):format(Formulas.radiationDps(tier, hazmat)):gsub("%.0$", "")
 			warning.Text = ("☢  RING %d RADIATION  −%s HP/s"):format(tier, dps)
+		elseif carried > 0 then
+			warning.Text = ("☢  RADIOACTIVE FREAK  −%s HP/s"):format(dps)
 		end
 	end
 	player:GetAttributeChangedSignal("ZoneTier"):Connect(updateWarning)
 	player:GetAttributeChangedSignal("Upgrade_hazmat"):Connect(updateWarning)
+	player:GetAttributeChangedSignal("Carry"):Connect(updateWarning)
 	updateWarning()
 
 	RunService.RenderStepped:Connect(function()

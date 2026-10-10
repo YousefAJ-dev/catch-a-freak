@@ -1,9 +1,9 @@
 --!strict
 -- Gate panel (DESIGN.md sections 8 and 11): the Gate prompt at the gate counter
 -- opens it; the X or walking away closes it. It always shows the current gate's
--- two requirements and which are done. Under each open requirement it lists
--- every carried or placed freak that qualifies, with a "Turn in" button.
--- GateService checks and consumes the freak.
+-- requirements and how many freaks each still needs. Under each open
+-- requirement it lists every carried or placed freak that qualifies, with a
+-- "Turn in" button. GateService checks and consumes the freak.
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -14,6 +14,7 @@ local Formulas = require(Shared.Formulas)
 local Remotes = require(Shared.Remotes)
 local Gates = require(Shared.Config.Gates)
 local FreakConfig = require(Shared.Config.Freaks)
+local Release = require(Shared.Config.Release)
 local UiKit = require(script.Parent.UiKit)
 
 local player = Players.LocalPlayer
@@ -54,15 +55,20 @@ function GateController.start()
 			return
 		end
 
+		panel.title.Text = ("Gate %d"):format(tier)
+		if gate.unlocksTier > Release.releasedTiers then
+			panel.subtitle.Text = ("Ring %d opens in a later update. Keep catching, farming and upgrading until then!"):format(gate.unlocksTier)
+			return
+		end
+
 		local progress = decode("GateProgress")
 		local done = 0
-		for i = 1, #gate.requirements do
-			if progress[i] then
+		for i, requirement in gate.requirements do
+			if (progress[i] or 0) >= requirement.count then
 				done += 1
 			end
 		end
-		panel.title.Text = ("Gate %d"):format(tier)
-		panel.subtitle.Text = ("Turn in both freaks to open Ring %d.  %d/%d done."):format(gate.unlocksTier, done, #gate.requirements)
+		panel.subtitle.Text = ("Turn in these freaks to open Ring %d.  %d/%d done."):format(gate.unlocksTier, done, #gate.requirements)
 
 		local order = 0
 		local function nextOrder(): number
@@ -76,13 +82,14 @@ function GateController.start()
 		end)
 
 		for i, requirement in gate.requirements do
-			local title = ("%s %s or better"):format(requirement.rarity, requirement.species)
+			local turnedIn = progress[i] or 0
+			local title = ("%s%s %s or better"):format(if requirement.count > 1 then ("%d× "):format(requirement.count) else "", requirement.rarity, requirement.species)
 			local where = ("Found in Ring %d"):format(tierOfSpecies[requirement.species] or 1)
-			if progress[i] then
+			if turnedIn >= requirement.count then
 				UiKit.row(panel.list, nextOrder(), title, where, "✓ Turned in", "Done", UiKit.colors.go, false, function() end)
 				continue
 			end
-			UiKit.row(panel.list, nextOrder(), title, where, "Needed", "—", UiKit.colors.go, false, function() end)
+			UiKit.row(panel.list, nextOrder(), title, where, ("%d/%d turned in"):format(turnedIn, requirement.count), "—", UiKit.colors.go, false, function() end)
 			local any = false
 			for slot, freak in carry do
 				if freak and Formulas.meetsRequirement(freak, requirement) then

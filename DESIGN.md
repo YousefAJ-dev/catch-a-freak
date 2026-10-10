@@ -20,10 +20,11 @@ All numbers in this document are **starting values to tune during playtests**. K
 | Population | Every ring has the same density of freaks as Ring 1 (70 freaks, about 3 per 10,000 square studs), so freak counts grow with ring area: 70, 112, 154, 196, 238 for Rings 1–5. Only rings with players near them have freaks at all (section 12). |
 | Carrying | Up to 9 freaks at once. |
 | Value | Each tier is worth 10× the one before it. |
-| Death | Lose every carried freak. Keep money, upgrades, items, and farm. Respawn at the shop. |
+| Death | Lose every carried freak. Keep money, upgrades, items, and farm. Respawn at your farm. |
 | Farms | One private plot per player, 8 plots, 8 players per server. Every plot is a fixed size with 16 glass incubators on one floor. Capacity upgrades unlock incubators; the plot never changes size. |
 | Radiation | Constant damage per second, doubling every ring. No healing in the rings. |
-| Gates | Each gate asks for 2 specific freaks. A freak of the required species at the required rarity **or higher** counts. Wheel prizes count. |
+| Gates | Each gate asks for a number of 2 specific freaks. A freak of the required species at the required rarity **or higher** counts. Wheel prizes count. |
+| Progression pace | Each ring takes about twice as long as the one before: about 15 min, 30 min, 1 h, 2 h and 4 h (≈ 8 h to reach Ring 5). Collection, mutations, quests and events add playtime on top without slowing the rings. Rings after 5 grow more gently (about 1.5× per ring), so no ring asks for much more than 8 h. |
 | Pacing | Fast at the start, slowing sharply. Each tier multiplies income by 10. Gear (Shoes, Hazmat, Grip) unlocks 5 more levels per ring, and each ring's 5 levels cost 10× the previous ring's, so gear keeps pace with both income and radiation. |
 
 ---
@@ -34,7 +35,7 @@ A circular map. Distances are in studs from the map center. Which zone a player 
 
 | Zone | Radius | Contents | Radiation |
 |------|--------|----------|-----------|
-| Shop | 0–40 | Shop, sell counter, gate counter, daily wheel, spawn point | None |
+| Shop | 0–40 | Shop, sell counter, gate counter, daily wheel | None |
 | Inner ring | 40–175 | 8 farm plots (layout in section 6) | None |
 | Ring 1 (Tier 1) | 175–325 | Tier 1 freaks | 8 HP/s |
 | Ring 2 (Tier 2) | 325–475 | Tier 2 freaks | 16 HP/s |
@@ -61,7 +62,8 @@ Because rings are concentric and equally wide, outer rings have more ground area
 
 - Doors sit at north, east, south, and west on every wall, lined up so a player can run straight out through all of them.
 - Each door is 24 studs wide.
-- The safe-zone barrier should look like a containment field (glowing, semi-transparent cylinder) so it reads as the thing keeping radiation out.
+- The safe-zone barrier is a solid lab containment wall: metal panels with a hazard-striped band and a glowing green light strip on the lab side, the Ring 1 palisade on the outside.
+- Players spawn and respawn in front of their own farm plot, so they always know where it is. (A player found in a ring above their tier is still sent to the shop.)
 - Players must not be able to jump or climb over any wall.
 - A player can enter or leave through any door they have access to.
 
@@ -134,8 +136,9 @@ Tuning target: a ring is tense the moment it unlocks and comfortable once the pl
 
 - All carried freaks are destroyed.
 - Money, upgrades, items, and farm are untouched.
-- Respawn at the shop.
-- If the player was carrying at least one freak of any rarity, offer the "Respawn with Caught Freaks" purchase for 10 seconds (see Monetization).
+- Respawn at their farm.
+- If the player was carrying at least one freak of any rarity, offer the "Respawn with Caught Freaks" purchase for 10 seconds (see Monetization). A "No thanks" button closes the offer early.
+- A dead player can't grab freaks while waiting to respawn.
 
 ---
 
@@ -147,11 +150,11 @@ A freak is defined by species, tier, and rarity.
 
 | Tier | Ring | Population | Radiation DPS | Base income ($/sec) | Base hold (sec) | Freak speed |
 |------|------|------------|---------------|---------------------|-----------------|-------------|
-| 1 | Ring 1 | 70 | 8 | 1 | 1.0 | 6 |
-| 2 | Ring 2 | 112 | 16 | 10 | 2.0 | 9 |
-| 3 | Ring 3 | 154 | 32 | 100 | 3.5 | 12 |
-| 4 | Ring 4 | 196 | 64 | 1,000 | 5.5 | 14 |
-| 5 | Ring 5 | 238 | 128 | 10,000 | 8.0 | 16 |
+| 1 | Ring 1 | 70 | 6 | 1 | 1.0 | 6 |
+| 2 | Ring 2 | 112 | 16 | 7.5 | 2.0 | 9 |
+| 3 | Ring 3 | 154 | 32 | 75 | 3.5 | 12 |
+| 4 | Ring 4 | 196 | 64 | 750 | 5.5 | 14 |
+| 5 | Ring 5 | 238 | 128 | 7,500 | 8.0 | 16 |
 
 Population is Ring 1's density (70 freaks over Ring 1's area) times each ring's area, computed in config, so it stays right if ring width or count changes. Future rings continue the pattern: 280, 322, 364, 406, 448 for Rings 6–10.
 
@@ -160,10 +163,14 @@ Population is Ring 1's density (70 freaks over Ring 1's area) times each ring's 
 | Rarity | Spawn chance | Income multiplier | Hold multiplier | Color |
 |--------|--------------|-------------------|-----------------|-------|
 | Common | 50% | ×1 | ×1 | Gray |
-| Uncommon | 30% | ×2 | ×1.5 | Green |
-| Rare | 14% | ×5 | ×2.5 | Blue |
-| Epic | 5% | ×15 | ×4 | Purple |
-| Legendary | 1% | ×50 | ×6 | Gold |
+| Uncommon | 30% | ×1.8 | ×1.5 | Green |
+| Rare | 14% | ×3.5 | ×2.5 | Blue |
+| Epic | 4.8% | ×9 | ×4 | Purple |
+| Legendary | 1% | ×30 | ×6 | Gold |
+| Rainbow | 0.1% | ×50 | ×8 | Cycles through the rainbow (pink in menus) |
+| Radioactive | 0.1% | ×77 | ×8 | Yellow-green |
+
+The two top rarities are made to be spotted from across a ring: a light, a stream of sparkles, and a tint over the whole body (Rainbow's cycling through the rainbow, Radioactive's a strong yellow-green). They get their own outline instead of competing for the nearest-6 outlines. Carrying a Radioactive freak costs the carrier 1 HP per second, anywhere, and the Hazmat Suit doesn't reduce it (the HUD radiation warning includes it).
 
 ### Value
 
@@ -287,17 +294,17 @@ Freaks in incubators:
 
 Cost of the next level = `baseCost × growth ^ currentLevel`, rounded to the nearest dollar.
 
-**Gear** (Shoes, Hazmat Suit, Stronger Grip) unlocks with progress: a player can buy up to `5 × highestTier` levels of each, so 5 more levels open every time a ring unlocks. Gear grows ×10^(1/5) ≈ ×1.585 per level, which makes each ring's 5 levels cost exactly 10× the previous ring's, matching the 10× income of each new ring.
+**Gear** (Shoes, Hazmat Suit, Stronger Grip) unlocks with progress: a player can buy up to `5 × highestTier` levels of each, so 5 more levels open every time a ring unlocks. Gear grows ×35^(1/5) ≈ ×2.04 per level, which makes each ring's 5 levels cost 35× the previous ring's. Income grows less than that per ring (×7.5–10), so gearing up for each ring takes longer than for the one before (the doubling pace in section 1).
 
 | Upgrade | Effect per level | Max level | Level cap | Base cost | Growth | Cost of level 5 | Cost of last level |
 |---------|------------------|-----------|-----------|-----------|--------|-----------------|--------------------|
-| Shoes | +2.5 walk speed (capped at 55) | 16 | 5 per unlocked tier | 50 | ×1.585 | 315 | 50K |
-| Hazmat Suit | Radiation damage ×0.85 | 25 (5 per ring; 50 at 10 rings) | 5 per unlocked tier | 75 | ×1.585 | 473 | 4.73M |
-| Stronger Grip | Grab hold time ×0.93 | 25 (5 per ring; 50 at 10 rings) | 5 per unlocked tier | 60 | ×1.585 | 379 | 3.79M |
+| Shoes | +2.5 walk speed (capped at 55) | 16 | 5 per unlocked tier | 50 | ×2.04 | 859 | 2.14M |
+| Hazmat Suit | Radiation damage ×0.85 | 25 (5 per ring; 50 at 10 rings) | 5 per unlocked tier | 75 | ×2.04 | 1,289 | 1.93B |
+| Stronger Grip | Grab hold time ×0.93 | 25 (5 per ring; 50 at 10 rings) | 5 per unlocked tier | 60 | ×2.04 | 1,031 | 1.55B |
 | Farm Capacity | Unlocks the next incubator | 13 | — | 150 | ×2.8 | 9,220 | 34.8M |
 | Offline Capacity | +1 hour offline limit | 7 | — | 300 | ×4 | 76,800 | 1.2M |
-| Dash | Unlocks the dash (section 4) | 1 | Requires Shoes 16 | 200K (4× the last Shoes level) | — | — | 200K |
-| Dash Recharge | −1 s dash cooldown (8 s → 3 s) | 5 | Requires Dash | 200K | ×1.585 | 1.26M | 1.26M |
+| Dash | Unlocks the dash (section 4) | 1 | Requires Shoes 16 | 17.2M (8× the last Shoes level) | — | — | 17.2M |
+| Dash Recharge | −1 s dash cooldown (8 s → 3 s) | 5 | Requires Dash | 17.2M | ×2.04 | 295M | 295M |
 
 Shoes stops at 16 because level 16 reaches the 55 speed cap; past that, the Dash is how players keep getting faster. Farm Capacity uses ×2.8 so its 13 levels (enough to unlock all 16 incubators) cost about 54M in total.
 
@@ -305,7 +312,7 @@ The first levels of each ring cost less than one run's haul there. Buying a ring
 
 ### Items
 
-Consumable. Bought at the shop. Price scales with the player's highest unlocked tier: `price = basePrice × 10 ^ (highestTier − 1)`. Players can hold up to 5 of each.
+Consumable. Bought at the shop. Price scales with the player's highest unlocked tier: `price = basePrice × 15 ^ (highestTier − 1)`. Players can hold up to 5 of each.
 
 Items are used with dedicated buttons, not carry slots: Q for Net Launcher, R for Bear Trap, plus on-screen buttons for mobile.
 
@@ -322,14 +329,20 @@ The **Sell** prompt at the sell counter opens the sell panel: the player's carri
 
 ## 8. Progression gates
 
-Each gate asks for 2 specific freaks. A freak counts if it is the required species at the required rarity or higher. Turn them in at the gate counter in the shop, from the carry slots or straight from the farm. Turned-in freaks are consumed.
+Each gate asks for a number of freaks of 2 specific species. A freak counts if it is the required species at the required rarity or higher. Turn them in at the gate counter in the shop, from the carry slots or straight from the farm. Turned-in freaks are consumed.
+
+The counts roughly double the freaks a player has to meet per gate (about 21, 42, 80 and 180), alongside gear costs that double per ring, for the doubling pace in section 1.
 
 | Gate | Unlocks | Requirement 1 | Requirement 2 |
 |------|---------|---------------|---------------|
-| 1 | Tier 2 (Ring 2) | Uncommon Twitcher | Rare Glowbug |
-| 2 | Tier 3 (Ring 3) | Rare Rustback | Epic Gloomhound |
-| 3 | Tier 4 (Ring 4) | Rare Sludgelet | Epic Hexwing |
-| 4 | Tier 5 (Ring 5) | Rare Tri-Eye | Epic Nightmare |
+| 1 | Tier 2 (Ring 2) | 1× Uncommon Twitcher | 1× Rare Glowbug |
+| 2 | Tier 3 (Ring 3) | 2× Rare Rustback | 2× Uncommon Gloomhound |
+| 3 | Tier 4 (Ring 4) | 2× Rare Sludgelet | 1× Epic Hexwing |
+| 4 | Tier 5 (Ring 5) | 2× Rare Tri-Eye | 3× Epic Nightmare |
+
+**Release cap.** `Config/Release.luau` sets how many tiers a build includes (3 for the first private playtest, 5 at launch). The gate past it says its ring opens in a later update, and the daily wheel never gives freaks from past it.
+
+**Measuring the pace.** Each player's play time and the play time at which they reached each tier are saved. Reaching a tier prints `[Progress] … reached tier N after X min played (Ring N−1 took Y min)` to the server log and sends a `ReachedTierN` custom analytics event (value: minutes played), visible in Creator Hub > Analytics. In Studio, `/progress` shows the same.
 
 - The gate panel always shows the current requirements and which are done.
 - Requirements can be turned in one at a time. Progress is saved.
@@ -363,10 +376,10 @@ Build this last, after the loop is fun. Product and Game Pass IDs live in `Confi
 
 | Product | Type | Behavior |
 |---------|------|----------|
-| 2x Money (1 hour) | Developer Product | Doubles farm income and sell payouts for 60 minutes of in-game time. The timer only counts down while the player is online. Buying again adds another 60 minutes. Shown as a HUD timer. |
+| 2x Money (2 hours) | Developer Product | Doubles farm income and sell payouts for 120 minutes of in-game time. The timer only counts down while the player is online. Buying again adds another 120 minutes. Shown as a HUD timer. |
 | Extra Wheel Spin | Developer Product | Grants one extra spin, usable immediately. |
 | Upgrade Skins | Game Pass per skin set | Cosmetic only, no gameplay effect. The equipped set recolors the character as a suit and boots (hiding the avatar's shirt and pants), with goggles and, for some sets, a glow: Lab Coat (white, goggles), Toxic (glowing green), Gold (gilded). |
-| Respawn with Caught Freaks | Developer Product | Offered for 10 seconds after dying while carrying at least one freak of any rarity. On purchase the player respawns at the shop still carrying everything. |
+| Respawn with Caught Freaks | Developer Product | Offered for 10 seconds after dying while carrying at least one freak of any rarity. On purchase the player respawns at their farm still carrying everything. |
 
 Rules:
 
@@ -477,7 +490,9 @@ One record per player, saved with **ProfileStore** (decided in Milestone 6) for 
   upgrades = { shoes = 0, hazmat = 0, grip = 0, farmCapacity = 0, offlineCapacity = 0 },
   items = { netLauncher = 0, bearTrap = 0 },
   highestTier = 1,
-  gateProgress = { false, false },   -- current gate's two requirements
+  gateProgress = { 0, 0 },           -- freaks turned in for each requirement of the current gate
+  playSeconds = 0,                   -- total play time, for tuning the pace
+  tierReachedAt = { ["1"] = 0 },     -- tier -> playSeconds when it was reached
   farm = {                            -- placed freaks
     -- { species = "Twitcher", tier = 1, rarity = "Uncommon", effects = {} },
   },

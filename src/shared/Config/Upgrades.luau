@@ -2,8 +2,10 @@
 -- Upgrade table from DESIGN.md section 7.
 -- Cost of the next level = baseCost × growth ^ currentLevel (see Formulas.upgradeCost).
 -- Gear (Shoes, Hazmat, Grip) unlocks levelsPerTier levels per unlocked tier
--- (see Formulas.upgradeLevelCap); its growth of 10^(1/5) makes each ring's
--- 5 levels cost 10× the previous ring's, matching each ring's 10× income.
+-- (see Formulas.upgradeLevelCap); its growth of 75^(1/5) makes each ring's
+-- 5 levels cost 75× the previous ring's. Income grows less than that per ring
+-- (Config/Tiers), so gearing up for each ring takes longer than for the one
+-- before (the doubling progression in Config/Gates).
 
 export type Upgrade = {
 	id: string, -- key in the saved `upgrades` table
@@ -16,7 +18,7 @@ export type Upgrade = {
 	requires: { upgrade: string, level: number }?, -- must own this first
 }
 
-local GEAR_GROWTH = 10 ^ (1 / 5)
+local GEAR_GROWTH = 75 ^ (1 / 5)
 
 local Upgrades: { [string]: Upgrade } = {
 	-- +walk speed per level (capped by PlayerConfig.maxWalkSpeed; level 16 reaches it)
@@ -25,14 +27,14 @@ local Upgrades: { [string]: Upgrade } = {
 	hazmat = { id = "hazmat", name = "Hazmat Suit", maxLevel = 25, baseCost = 75, growth = GEAR_GROWTH, effectPerLevel = 0.85, levelsPerTier = 5 },
 	-- grab hold time × effectPerLevel ^ level
 	grip = { id = "grip", name = "Stronger Grip", maxLevel = 25, baseCost = 60, growth = GEAR_GROWTH, effectPerLevel = 0.93, levelsPerTier = 5 },
-	farmCapacity = { id = "farmCapacity", name = "Farm Capacity", maxLevel = 13, baseCost = 150, growth = 2.8, effectPerLevel = 1 }, -- +incubator
-	offlineCapacity = { id = "offlineCapacity", name = "Offline Capacity", maxLevel = 7, baseCost = 300, growth = 4, effectPerLevel = 1 }, -- +hour
+	farmCapacity = { id = "farmCapacity", name = "Farm Capacity", maxLevel = 13, baseCost = 150, growth = GEAR_GROWTH, effectPerLevel = 1 }, -- +incubator
+	offlineCapacity = { id = "offlineCapacity", name = "Offline Capacity", maxLevel = 7, baseCost = 300, GEAR_GROWTH, effectPerLevel = 1 }, -- +hour
 }
 
--- Dash: a one-time purchase once Shoes is maxed, priced at 4× the last Shoes
+-- Dash: a one-time purchase once Shoes is maxed, priced at 8× the last Shoes
 -- level. Dash Recharge then shortens its cooldown (see Config/Dash).
 local lastShoesCost = math.round(Upgrades.shoes.baseCost * Upgrades.shoes.growth ^ (Upgrades.shoes.maxLevel - 1))
-local dashCost = 4 * lastShoesCost
+local dashCost = 8 * lastShoesCost
 Upgrades.dash = {
 	id = "dash",
 	name = "Dash",

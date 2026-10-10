@@ -58,6 +58,8 @@ function WheelController.start()
 	local spinning = false
 	local awaiting = false -- asked the server to spin, no answer yet
 	local lastResult: string? = nil
+	local spinnerRest: CFrame? = nil -- the wheel model's pivot before any spin
+	local spinnerAngle = 0 -- how far it has turned from rest, in radians
 
 	-- The strip: one segment per prize, its width proportional to the odds.
 	local strip = UiKit.make("Frame", {
@@ -210,20 +212,28 @@ function WheelController.start()
 		awaiting = false
 		spinning = true
 		local landing = starts[index] + Wheel.prizes[index].chance * (0.2 + 0.6 * math.random())
-		local wheelPart = workspace:FindFirstChild("Map")
+		local spinner = workspace:FindFirstChild("Map")
 			and workspace.Map:FindFirstChild("Shop")
 			and workspace.Map.Shop:FindFirstChild("DailyWheel")
-			and workspace.Map.Shop.DailyWheel:FindFirstChild("Wheel") :: BasePart?
-		local wheelStart = if wheelPart then wheelPart.CFrame else nil
+			and workspace.Map.Shop.DailyWheel:FindFirstChild("Spinner") :: Model?
+		if spinner and not spinnerRest then
+			spinnerRest = spinner:GetPivot()
+		end
+		-- The segments are laid out so that a turn of `landing` (from rest)
+		-- puts the prize under the pointer: spin on from the current angle,
+		-- a few full turns, to exactly that.
+		local fromAngle = spinnerAngle
+		local toAngle = 2 * math.pi * (math.floor(spinnerAngle / (2 * math.pi)) + SWEEPS + landing)
 		local started = os.clock()
 		local connection
 		connection = RunService.RenderStepped:Connect(function()
 			local t = math.clamp((os.clock() - started) / Wheel.spinSeconds, 0, 1)
 			local eased = 1 - (1 - t) ^ 3
 			pointer.Position = UDim2.fromScale((eased * (SWEEPS + landing)) % 1, 0)
-			if wheelPart and wheelStart then
-				-- The cylinder's axis is X: spinning about it turns the disc.
-				wheelPart.CFrame = wheelStart * CFrame.Angles(eased * math.pi * 2 * (SWEEPS + landing), 0, 0)
+			if spinner and spinnerRest then
+				-- The disc's axis is its X: turning about it spins the wheel.
+				spinnerAngle = fromAngle + eased * (toAngle - fromAngle)
+				spinner:PivotTo(spinnerRest * CFrame.Angles(spinnerAngle, 0, 0))
 			end
 			if t >= 1 then
 				connection:Disconnect()
@@ -265,7 +275,7 @@ function WheelController.start()
 	end)
 
 	task.spawn(function()
-		local wheel = workspace:WaitForChild("Map"):WaitForChild("Shop"):WaitForChild("DailyWheel"):WaitForChild("Wheel") :: BasePart
+		local wheel = workspace:WaitForChild("Map"):WaitForChild("Shop"):WaitForChild("DailyWheel"):WaitForChild("Spinner"):WaitForChild("Wheel") :: BasePart
 		UiKit.localPrompt("WheelPrompt", wheel.Position - Vector3.new(0, 4, 0), "Spin", "Daily Wheel", PROMPT_RANGE, function()
 			open = true
 			render()

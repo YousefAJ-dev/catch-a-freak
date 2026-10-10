@@ -41,7 +41,9 @@ function OutlineController.start()
 		if root then
 			for _, model in CollectionService:GetTagged("Freak") do
 				local freakRoot = model:IsA("Model") and model.Parent and model:FindFirstChild("Root") :: BasePart?
-				if freakRoot then
+				local rarity = Rarities.byId[model:GetAttribute("Rarity") :: string]
+				-- Glowing rarities have their own highlight (RarityFxController).
+				if freakRoot and not (rarity and rarity.glow) then
 					table.insert(nearest, { model = model :: Model, distance = (freakRoot.Position - root.Position).Magnitude })
 				end
 			end

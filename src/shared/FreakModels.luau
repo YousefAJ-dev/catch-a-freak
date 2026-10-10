@@ -12,9 +12,11 @@
 -- so a model can be moved by moving its parts with fixed offsets.
 
 local AssetService = game:GetService("AssetService")
+local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local FreakConfig = require(script.Parent.Config.Freaks)
+local Rarities = require(script.Parent.Config.Rarities)
 
 local FOLDER_NAME = "FreakMeshes"
 local CLIENT_WAIT = 15 -- seconds a client waits for the server's meshes before using stand-ins
@@ -127,6 +129,51 @@ function FreakModels.build(species: FreakConfig.Species): (Model, BasePart)
 	body.Parent = model
 
 	return model, body
+end
+
+local RAINBOW = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 60, 60)),
+	ColorSequenceKeypoint.new(0.2, Color3.fromRGB(255, 170, 40)),
+	ColorSequenceKeypoint.new(0.4, Color3.fromRGB(255, 240, 60)),
+	ColorSequenceKeypoint.new(0.6, Color3.fromRGB(70, 230, 90)),
+	ColorSequenceKeypoint.new(0.8, Color3.fromRGB(60, 150, 255)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(190, 80, 255)),
+})
+
+-- Gives a freak of a glowing rarity (Config/Rarities) a light and a stream
+-- of sparkles, so it stands out from across a ring. `scale` shrinks them for
+-- small copies (trail miniatures, freaks scaled down to fit an incubator).
+-- Rainbow lights are tagged "RainbowGlow" so the client can cycle their color.
+function FreakModels.decorate(body: BasePart, rarityId: string, scale: number?)
+	local rarity = Rarities.byId[rarityId]
+	if not (rarity and rarity.glow) then
+		return
+	end
+	local s = scale or 1
+	local light = Instance.new("PointLight")
+	light.Name = "RarityLight"
+	light.Color = rarity.glow
+	light.Range = 18 * s
+	light.Brightness = 3
+	light.Shadows = false
+	light.Parent = body
+	if rarity.rainbow then
+		CollectionService:AddTag(light, "RainbowGlow")
+	end
+
+	local sparkles = Instance.new("ParticleEmitter")
+	sparkles.Name = "RaritySparkles"
+	sparkles.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	sparkles.Color = if rarity.rainbow then RAINBOW else ColorSequence.new(rarity.glow)
+	sparkles.LightEmission = 1
+	sparkles.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.6 * s), NumberSequenceKeypoint.new(1, 0) })
+	sparkles.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.1), NumberSequenceKeypoint.new(1, 1) })
+	sparkles.Lifetime = NumberRange.new(1, 1.6)
+	sparkles.Rate = 10
+	sparkles.Speed = NumberRange.new(1, 3)
+	sparkles.SpreadAngle = Vector2.new(180, 180)
+	sparkles.Acceleration = Vector3.new(0, 2, 0)
+	sparkles.Parent = body
 end
 
 return FreakModels

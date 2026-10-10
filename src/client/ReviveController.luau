@@ -3,6 +3,7 @@
 -- freak, a short offer to buy "Respawn with Caught Freaks". The server holds
 -- the lost freaks and restores them when the purchase is granted
 -- (MonetizationService); this only shows the offer and starts the purchase.
+-- "No thanks" closes it early for a player who doesn't want it.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -75,11 +76,20 @@ function ReviveController.start()
 		endsAt = offerEndsAt
 		shownFor = math.max(offerEndsAt - workspace:GetServerTimeNow(), 0.1)
 		title.Text = "You were overcome by radiation"
-		body.Text = ("You dropped %d freak%s. Respawn at the shop still carrying all of them?"):format(count, if count == 1 then "" else "s")
+		body.Text = ("You dropped %d freak%s. Respawn at your farm still carrying all of them?"):format(count, if count == 1 then "" else "s")
 		UiKit.clear(buyHolder)
-		UiKit.button(buyHolder, ("Respawn with freaks  ·  %s"):format(Purchases.productPrice("revive")), Color3.fromRGB(0, 160, 110), true, function()
+		local buySlot = UiKit.make("Frame", { Size = UDim2.new(0.68, -4, 1, 0), BackgroundTransparency = 1, Parent = buyHolder })
+		local dismissSlot = UiKit.make("Frame", {
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.fromScale(1, 0),
+			Size = UDim2.new(0.32, -4, 1, 0),
+			BackgroundTransparency = 1,
+			Parent = buyHolder,
+		})
+		UiKit.button(buySlot, ("Respawn with freaks  ·  %s"):format(Purchases.productPrice("revive")), Color3.fromRGB(0, 160, 110), true, function()
 			Purchases.promptProduct("revive")
 		end)
+		UiKit.button(dismissSlot, "No thanks", UiKit.colors.disabled, true, hide)
 		gui.Enabled = true
 	end)
 	Remotes.ReviveDone.OnClientEvent:Connect(hide)

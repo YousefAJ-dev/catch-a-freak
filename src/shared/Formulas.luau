@@ -12,6 +12,7 @@ local Items = require(Config:WaitForChild("Items"))
 local PlayerConfig = require(Config:WaitForChild("Player"))
 local Dash = require(Config:WaitForChild("Dash"))
 local Wheel = require(Config:WaitForChild("Wheel"))
+local Release = require(Config:WaitForChild("Release"))
 
 local Formulas = {}
 
@@ -140,10 +141,11 @@ end
 -- of the freak it gives.
 function Formulas.wheelPrize(prizeIndex: number, highestTier: number): (number, string)
 	local prize = Wheel.prizes[prizeIndex]
-	if prize.tierOffset > 0 and highestTier >= #Tiers then
-		return highestTier, prize.lastTierRarity or prize.rarity
+	local lastTier = math.min(#Tiers, Release.releasedTiers) -- never a freak from an unreleased ring
+	if prize.tierOffset > 0 and highestTier >= lastTier then
+		return math.min(highestTier, lastTier), prize.lastTierRarity or prize.rarity
 	end
-	return math.min(highestTier + prize.tierOffset, #Tiers), prize.rarity
+	return math.min(highestTier + prize.tierOffset, lastTier), prize.rarity
 end
 
 -- Picks a wheel prize index from a uniform roll in [0, 1).
@@ -183,12 +185,12 @@ end
 -- the Offline Capacity limit. Never boosted by 2x Money (DESIGN.md section 6).
 function Formulas.offlineEarnings(incomePerSecond: number, secondsAway: number, offlineLevel: number): number
 	local cappedSeconds = math.min(math.max(secondsAway, 0), Formulas.offlineHours(offlineLevel) * 3600)
-	return math.floor(incomePerSecond * cappedSeconds)
+	return math.floor((incomePerSecond * cappedSeconds) / 2)
 end
 
 -- Price of one item, scaled by the player's highest unlocked tier.
 function Formulas.itemPrice(itemId: string, highestTier: number): number
-	return (Items :: any)[itemId].basePrice * 10 ^ (highestTier - 1)
+	return (Items :: any)[itemId].basePrice * 15 ^ (highestTier - 1)
 end
 
 -- Cost of buying the next level of an upgrade, rounded to the nearest dollar.

@@ -132,7 +132,7 @@ function ShopController.start()
 		-- Robux boost, sold alongside the items.
 		local boostProduct = Products.developerProducts.money2x
 		local left = (player:GetAttribute("Boost2xSecondsLeft") :: number?) or 0
-		local status = if left > 0 then ("Active: %d min left — buying adds an hour"):format(math.ceil(left / 60)) else boostProduct.description
+		local status = if left > 0 then ("Active: %d min left — buying adds %d more"):format(math.ceil(left / 60), Products.boostSeconds // 60) else boostProduct.description
 		UiKit.row(panel.list, #Items.order + 1, boostProduct.name, status, Purchases.productPrice("money2x"), "Buy", ROBUX, true, function()
 			Purchases.promptProduct("money2x")
 		end)

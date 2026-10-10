@@ -1,6 +1,7 @@
 --!strict
 -- Studio-only playtest commands, typed in chat (DESIGN.md section 12):
---   /tier <1-3>               set your highest unlocked tier
+--   /tier <1-5>               set your highest unlocked tier
+--   /progress                 your play time, and when you reached each tier
 --   /upgrade <id> <level>     set an upgrade level (shoes, hazmat, grip, farmCapacity, offlineCapacity)
 --   /spawnfreak <tier> <rarity> [species]  spawn a freak in front of you,
 --                             e.g. /spawnfreak 2 Epic or /spawnfreak 1 Rare Glowbug
@@ -36,12 +37,28 @@ type Command = {
 local commands: { Command } = {
 	{
 		alias = "/tier",
-		usage = "/tier <1-3>",
+		usage = "/tier <1-5>",
 		run = function(player, args)
 			local tier = tonumber(args[1])
 			assert(tier, "missing tier number")
 			DataService.setHighestTier(player, tier)
 			return ("highest tier = %d"):format(player:GetAttribute("HighestTier"))
+		end,
+	},
+	{
+		alias = "/progress",
+		usage = "/progress",
+		run = function(player)
+			local played, reached = DataService.progress(player)
+			local lines = { ("played %.0f min"):format(played / 60) }
+			for tier = 2, 10 do
+				local at = reached[tostring(tier)]
+				local before = reached[tostring(tier - 1)]
+				if at then
+					table.insert(lines, ("tier %d at %.0f min%s"):format(tier, at / 60, if before then (" (Ring %d took %.0f min)"):format(tier - 1, (at - before) / 60) else ""))
+				end
+			end
+			return table.concat(lines, "; ")
 		end,
 	},
 	{
