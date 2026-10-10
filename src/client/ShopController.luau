@@ -129,13 +129,21 @@ function ShopController.start()
 				Remotes.BuyItem:FireServer(id)
 			end)
 		end
-		-- Robux boost, sold alongside the items.
-		local boostProduct = Products.developerProducts.money2x
-		local left = (player:GetAttribute("Boost2xSecondsLeft") :: number?) or 0
-		local status = if left > 0 then ("Active: %d min left — buying adds %d more"):format(math.ceil(left / 60), Products.boostSeconds // 60) else boostProduct.description
-		UiKit.row(panel.list, #Items.order + 1, boostProduct.name, status, Purchases.productPrice("money2x"), "Buy", ROBUX, true, function()
-			Purchases.promptProduct("money2x")
+		-- Robux extras, sold alongside the items.
+		local golden = Items.goldenTrap
+		local goldenHeld = (player:GetAttribute("Item_goldenTrap") :: number?) or 0
+		UiKit.row(panel.list, #Items.order + 1, ("%s  ·  %d  [%s]"):format(golden.name, goldenHeld, golden.key.Name), golden.description, Purchases.productPrice("goldenTrap"), "Buy", ROBUX, true, function()
+			Purchases.promptProduct("goldenTrap")
 		end)
+		local pass = Products.passes.money2x
+		local ok, owned = pcall(HttpService.JSONDecode, HttpService, (player:GetAttribute("OwnedPasses") :: string?) or "[]")
+		if ok and table.find(owned, pass.key) then
+			UiKit.row(panel.list, #Items.order + 2, pass.name, pass.description, "Owned", "Owned", ROBUX, false, function() end)
+		else
+			UiKit.row(panel.list, #Items.order + 2, pass.name, pass.description, Purchases.priceText(pass.passId, Enum.InfoType.GamePass), "Buy", ROBUX, true, function()
+				Purchases.promptPass(pass)
+			end)
+		end
 	end
 
 	local function renderSkins()
@@ -204,13 +212,16 @@ function ShopController.start()
 
 	-- Look up Robux prices once in the background so rendering never waits on them.
 	task.spawn(function()
-		Purchases.productPrice("money2x")
+		Purchases.productPrice("goldenTrap")
+		for _, pass in Products.passes do
+			Purchases.priceText(pass.passId, Enum.InfoType.GamePass)
+		end
 		for _, skin in Products.skinSets do
 			Purchases.priceText(skin.passId, Enum.InfoType.GamePass)
 		end
 	end)
 
-	local watched = { "Money", "HighestTier", "OwnedSkins", "EquippedSkin" }
+	local watched = { "Money", "HighestTier", "OwnedSkins", "EquippedSkin", "OwnedPasses", "Item_goldenTrap" }
 	for _, id in UPGRADE_ORDER do
 		table.insert(watched, "Upgrade_" .. id)
 	end

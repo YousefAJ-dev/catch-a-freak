@@ -17,13 +17,16 @@ export type SkinLook = {
 	glow: Color3?,
 }
 export type SkinSet = { key: string, passId: number, name: string, description: string, look: SkinLook }
+-- A Game Pass with a gameplay effect, owned for good once bought.
+export type Pass = { key: string, passId: number, name: string, description: string }
 
 local developerProducts: { [string]: DevProduct } = {
-	money2x = {
-		key = "money2x",
+	-- One Golden Bear Trap (Config/Items.goldenTrap).
+	goldenTrap = {
+		key = "goldenTrap",
 		id = -1,
-		name = "2x Money (2 hour)",
-		description = "Doubles farm income and sell payouts for 120 minutes of play time",
+		name = "Golden Bear Trap",
+		description = "A trap that lures and pins ONLY Rainbow and Radioactive freaks",
 	},
 	extraSpin = {
 		key = "extraSpin",
@@ -36,6 +39,15 @@ local developerProducts: { [string]: DevProduct } = {
 		id = -3,
 		name = "Respawn with Caught Freaks",
 		description = "Respawn at the shop still carrying everything you caught",
+	},
+}
+
+local passes: { [string]: Pass } = {
+	money2x = {
+		key = "money2x",
+		passId = -201,
+		name = "2x Money",
+		description = "Permanently doubles farm income and sell payouts",
 	},
 }
 
@@ -80,8 +92,8 @@ local skinSets: { SkinSet } = {
 
 return {
 	developerProducts = developerProducts,
+	passes = passes,
 	skinSets = skinSets,
-	boostSeconds = 7200, -- per 2x Money purchase (2 hours); stacks
 	reviveOfferSeconds = 10, -- how long the offer stays on screen after dying
 	-- How long a dead player's freaks are held for a revive purchase. Longer
 	-- than the offer so a purchase dialog opened in time can still finish.

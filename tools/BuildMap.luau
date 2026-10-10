@@ -529,8 +529,9 @@ local function buildPlots(map: Instance)
 			Name = "CollectPad",
 			CFrame = cf * CFrame.new(0, -0.3, collectZ),
 			Size = Vector3.new(cfg.collectPadSize, 0.4, cfg.collectPadSize),
-			Color = Color3.fromRGB(60, 230, 90),
-			Material = Enum.Material.Neon,
+			-- Grey for everyone; each client colors its own pad green (FarmController).
+			Color = Color3.fromRGB(95, 100, 105),
+			Material = Enum.Material.SmoothPlastic,
 			CanCollide = false,
 			Parent = plot,
 		})

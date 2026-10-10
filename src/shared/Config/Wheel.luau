@@ -14,13 +14,16 @@ export type Prize = {
 }
 
 local prizes: { Prize } = {
-	{ chance = 0.47, tierOffset = 0, rarity = "Common", color = Color3.fromRGB(165, 165, 170) },
-	{ chance = 0.40, tierOffset = 0, rarity = "Rare", color = Color3.fromRGB(60, 140, 255) },
-	{ chance = 0.10, tierOffset = 1, rarity = "Common", lastTierRarity = "Epic", color = Color3.fromRGB(170, 80, 240) },
-	{ chance = 0.03, tierOffset = 1, rarity = "Rare", lastTierRarity = "Legendary", color = Color3.fromRGB(255, 200, 40) },
+	{ chance = 0.40, tierOffset = 0, rarity = "Common", color = Color3.fromRGB(165, 165, 170) },
+	{ chance = 0.20, tierOffset = 0, rarity = "Rare", color = Color3.fromRGB(60, 140, 255) },
+	{ chance = 0.10, tierOffset = 0, rarity = "Epic", color = Color3.fromRGB(170, 80, 240) },
+	{ chance = 0.05, tierOffset = 0, rarity = "Legendary", color = Color3.fromRGB(255, 200, 40) },
+	{ chance = 0.01, tierOffset = 0, rarity = "Rainbow", color = Color3.fromRGB(252, 143, 248) },
+	{ chance = 0.20, tierOffset = 1, rarity = "Common", lastTierRarity = "Epic", color = Color3.fromRGB(170, 80, 240) },
+	{ chance = 0.04, tierOffset = 1, rarity = "Epic", lastTierRarity = "Legendary", color = Color3.fromRGB(255, 200, 40) },
 }
 
 return {
 	prizes = prizes,
-	spinSeconds = 4, -- length of the spin animation
+	spinSeconds = 7, -- length of the spin animation
 }

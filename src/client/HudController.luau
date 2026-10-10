@@ -151,7 +151,7 @@ local function buildGui()
 		Parent = moneyFrame,
 	})
 
-	-- 2x Money timer, under the money display while the boost is active.
+	-- 2x Money badge, under the money display for owners of the Game Pass.
 	local boost = make("TextLabel", {
 		Name = "Boost",
 		AnchorPoint = Vector2.new(1, 0),
@@ -161,7 +161,7 @@ local function buildGui()
 		Font = Enum.Font.GothamBlack,
 		TextSize = 18,
 		TextColor3 = Color3.fromRGB(40, 30, 0),
-		Text = "",
+		Text = "2x MONEY  ·  ACTIVE",
 		Visible = false,
 		Parent = gui,
 	})
@@ -193,7 +193,7 @@ function HudController.start()
 		money.TextColor3 = if change > 0 then Color3.new(1, 1, 1) else MONEY_SPENT
 		TweenService:Create(money, FLASH, { TextColor3 = MONEY_GREEN }):Play()
 		if change > 0 then
-			local top = if boost.Visible then 120 else 80 -- below the 2x timer when it shows
+			local top = if boost.Visible then 120 else 80 -- below the 2x badge when it shows
 			local float = make("TextLabel", {
 				AnchorPoint = Vector2.new(1, 0),
 				Position = UDim2.new(1, -16, 0, top),
@@ -217,14 +217,10 @@ function HudController.start()
 	updateMoney()
 
 	local function updateBoost()
-		local seconds = (player:GetAttribute("Boost2xSecondsLeft") :: number?) or 0
-		boost.Visible = seconds > 0
-		if seconds > 0 then
-			local h, m, s = seconds // 3600, (seconds % 3600) // 60, seconds % 60
-			boost.Text = if h > 0 then ("2x MONEY  %d:%02d:%02d"):format(h, m, s) else ("2x MONEY  %d:%02d"):format(m, s)
-		end
+		local ok, passes = pcall(HttpService.JSONDecode, HttpService, (player:GetAttribute("OwnedPasses") :: string?) or "[]")
+		boost.Visible = ok and table.find(passes, "money2x") ~= nil
 	end
-	player:GetAttributeChangedSignal("Boost2xSecondsLeft"):Connect(updateBoost)
+	player:GetAttributeChangedSignal("OwnedPasses"):Connect(updateBoost)
 	updateBoost()
 
 	-- HP per second from carried radioactive freaks (RadiationService).

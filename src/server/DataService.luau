@@ -9,7 +9,7 @@
 --
 -- Fields the client needs to display are mirrored onto the Player as
 -- attributes ("Money", "HighestTier", "Upgrade_<id>", "Item_<id>", "GateProgress",
--- "WheelLastFreeDay", "WheelExtraSpins", "Freakpedia"). The record stays the
+-- "WheelLastFreeDay", "WheelExtraSpins", "Freakpedia", "OwnedPasses"). The record stays the
 -- source of truth; never read those attributes back on the server as values.
 -- (Connecting to their change signals to learn that something changed is fine.)
 --
@@ -44,7 +44,7 @@ export type Data = {
 	uncollected: number,
 	lastSeen: number, -- os.time() at the last save
 	wheel: { lastFreeSpinDay: number, extraSpins: number },
-	boost2xSecondsLeft: number,
+	ownedPasses: { string }, -- gameplay Game Pass keys (Config/Products.passes)
 	ownedSkins: { string }, -- skin set keys (Config/Products)
 	equippedSkin: string, -- "" for none
 	processedReceipts: { string }, -- recent Developer Product PurchaseIds
@@ -60,7 +60,7 @@ local function newData(): Data
 		version = 1,
 		money = 0,
 		upgrades = upgrades,
-		items = { netLauncher = 0, bearTrap = 0 },
+		items = { netLauncher = 0, bearTrap = 0, goldenTrap = 0 },
 		highestTier = 1,
 		gateProgress = { 0, 0 },
 		playSeconds = 0,
@@ -69,7 +69,7 @@ local function newData(): Data
 		uncollected = 0,
 		lastSeen = 0,
 		wheel = { lastFreeSpinDay = 0, extraSpins = 0 },
-		boost2xSecondsLeft = 0,
+		ownedPasses = {},
 		ownedSkins = {},
 		equippedSkin = "",
 		processedReceipts = {},
@@ -129,7 +129,7 @@ local function replicate(player: Player, data: Data)
 	player:SetAttribute("GateProgress", HttpService:JSONEncode(data.gateProgress))
 	player:SetAttribute("WheelLastFreeDay", data.wheel.lastFreeSpinDay)
 	player:SetAttribute("WheelExtraSpins", data.wheel.extraSpins)
-	player:SetAttribute("Boost2xSecondsLeft", data.boost2xSecondsLeft)
+	player:SetAttribute("OwnedPasses", HttpService:JSONEncode(data.ownedPasses))
 	player:SetAttribute("OwnedSkins", HttpService:JSONEncode(data.ownedSkins))
 	player:SetAttribute("EquippedSkin", data.equippedSkin)
 	player:SetAttribute("Freakpedia", HttpService:JSONEncode(data.freakpedia))
@@ -337,6 +337,7 @@ local function onPlayerAdded(player: Player)
 
 	profile:AddUserId(player.UserId) -- GDPR: lets Roblox find this player's data
 	profile:Reconcile() -- fills in fields added to the template since the last save
+	profile.Data.boost2xSecondsLeft = nil -- the timed 2x Money boost became a Game Pass
 	for _, record in profile.Data.farm do
 		record.species = FreakConfig.renamed[record.species] or record.species
 		-- Freaks caught before the Freakpedia existed count as discovered.

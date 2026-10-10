@@ -50,8 +50,8 @@ local function sellSlot(player: Player, slot: number): number?
 		return nil
 	end
 	local data = DataService.get(player)
-	local boost = if data then data.boost2xSecondsLeft else 0
-	local price = Formulas.sellPrice(freak.tier, freak.rarity, freak.effects) * Formulas.moneyMultiplier(boost)
+	local multiplier = if data then Formulas.moneyMultiplier(data.ownedPasses) else 1
+	local price = Formulas.sellPrice(freak.tier, freak.rarity, freak.effects) * multiplier
 	DataService.addMoney(player, price)
 	return price
 end

@@ -18,8 +18,33 @@ local World = require(ReplicatedStorage.Shared.Config.World)
 local player = Players.LocalPlayer
 
 local PROMPT_RANGE = 12
+local OWN_PAD = Color3.fromRGB(60, 200, 90)
+local OTHER_PAD = Color3.fromRGB(95, 100, 105)
 
 local FarmController = {}
+
+-- Collection pads, styled locally: the player's own is plain green (no
+-- glow) with its COLLECT label; everyone else's is grey and unlabeled.
+local function stylePad(pad: Instance)
+	if not (pad:IsA("BasePart") and pad.Name == "CollectPad") then
+		return
+	end
+	local plot = pad.Parent
+	local own = plot ~= nil and plot:GetAttribute("PlotIndex") == player:GetAttribute("PlotIndex")
+	pad.Material = Enum.Material.SmoothPlastic
+	pad.Color = if own then OWN_PAD else OTHER_PAD
+	local label = pad:FindFirstChild("Label") :: BillboardGui?
+	if label then
+		label.Enabled = own
+	end
+end
+
+local function stylePads()
+	local plots = workspace:WaitForChild("Map"):WaitForChild("Plots")
+	for _, pad in plots:GetDescendants() do
+		stylePad(pad)
+	end
+end
 
 local function decode(attribute: string): { any }
 	local ok, value = pcall(HttpService.JSONDecode, HttpService, (player:GetAttribute(attribute) :: string?) or "[]")
@@ -126,6 +151,12 @@ function FarmController.start()
 		UiKit.localPrompt("FarmPrompt", front.Position, "Open farm", "Your Lab", PROMPT_RANGE, function()
 			setOpen(true)
 		end)
+	end)
+	task.spawn(function()
+		local plots = workspace:WaitForChild("Map"):WaitForChild("Plots")
+		plots.DescendantAdded:Connect(stylePad) -- pads streaming back in
+		stylePads()
+		player:GetAttributeChangedSignal("PlotIndex"):Connect(stylePads)
 	end)
 	-- The pool and income change every second; only the subtitle needs updating.
 	for _, attribute in { "Uncollected", "FarmIncome" } do

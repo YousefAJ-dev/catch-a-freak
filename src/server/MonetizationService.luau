@@ -7,8 +7,9 @@
 -- DataStore, so a replayed receipt never grants twice and a server crash can't
 -- lose a purchase.
 --
---   2x Money       doubles farm income and sell payouts; counts down only
---                  while online; each purchase adds an hour
+--   2x Money       Game Pass: doubles farm income and sell payouts for good
+--   Golden Trap    one Golden Bear Trap (ItemService): only Rainbow and
+--                  Radioactive freaks
 --   Extra Spin     one more daily-wheel spin. Paid spins are "paid random
 --                  items": hidden for players whose policy restricts them
 --   Revive         offered for a few seconds after dying with freaks; restores
@@ -16,7 +17,10 @@
 --   Skin sets      Game Passes; ownership is saved and one can be equipped
 --                  (the looks arrive with the art in Milestone 10)
 --
--- Player attributes for the client: "Boost2xSecondsLeft", "OwnedSkins",
+-- Game Pass ownership lives on Roblox; it's checked on every join and copied
+-- into the save (so Studio test purchases stick too).
+--
+-- Player attributes for the client: "OwnedPasses", "OwnedSkins",
 -- "EquippedSkin" (via DataService) and "PaidRandomItemsRestricted".
 
 local MarketplaceService = game:GetService("MarketplaceService")
@@ -47,11 +51,11 @@ local function productByKey(key: string): Products.DevProduct
 end
 
 local GRANTS: { [string]: (Player) -> () } = {
-	money2x = function(player)
+	goldenTrap = function(player)
 		local data = assert(DataService.get(player))
-		data.boost2xSecondsLeft += Products.boostSeconds
+		data.items.goldenTrap += 1
 		DataService.refresh(player)
-		notify(player, "2x Money active — farm income and sales are doubled")
+		notify(player, "Golden Bear Trap added — press T to set it")
 	end,
 	extraSpin = function(player)
 		local data = assert(DataService.get(player))
@@ -126,6 +130,31 @@ local function grantSkin(player: Player, skinKey: string)
 	end
 end
 
+local function grantPass(player: Player, passKey: string)
+	local data = DataService.get(player)
+	if data and not table.find(data.ownedPasses, passKey) then
+		table.insert(data.ownedPasses, passKey)
+		DataService.refresh(player)
+	end
+end
+
+local function passById(passId: number): Products.Pass?
+	for _, pass in Products.passes do
+		if pass.passId == passId then
+			return pass
+		end
+	end
+	return nil
+end
+
+local function ownsPass(player: Player, passId: number): boolean
+	if passId <= 0 then
+		return false
+	end
+	local ok, owns = pcall(MarketplaceService.UserOwnsGamePassAsync, MarketplaceService, player.UserId, passId)
+	return ok and owns == true
+end
+
 local function skinByPass(passId: number): Products.SkinSet?
 	for _, skin in Products.skinSets do
 		if skin.passId == passId then
@@ -138,13 +167,22 @@ end
 -- Game Passes live on Roblox, not in our save: check them on every join.
 local function checkOwnedPasses(player: Player)
 	for _, skin in Products.skinSets do
-		if skin.passId > 0 then
-			local ok, owns = pcall(MarketplaceService.UserOwnsGamePassAsync, MarketplaceService, player.UserId, skin.passId)
-			if ok and owns then
-				grantSkin(player, skin.key)
-			end
+		if ownsPass(player, skin.passId) then
+			grantSkin(player, skin.key)
 		end
 	end
+	for _, pass in Products.passes do
+		if ownsPass(player, pass.passId) then
+			grantPass(player, pass.key)
+		end
+	end
+end
+
+function MonetizationService.simulatePassPurchase(player: Player, passKey: string): string
+	assert(RunService:IsStudio(), "Studio only")
+	assert(Products.passes[passKey], "unknown pass " .. tostring(passKey))
+	grantPass(player, passKey)
+	return "granted pass " .. passKey
 end
 
 function MonetizationService.simulateSkinPurchase(player: Player, skinKey: string): string
@@ -192,10 +230,17 @@ function MonetizationService.start()
 	Remotes.EquipSkin.OnServerEvent:Connect(onEquipSkin)
 
 	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, passId, purchased)
+		if not purchased then
+			return
+		end
 		local skin = skinByPass(passId)
-		if purchased and skin then
+		local pass = passById(passId)
+		if skin then
 			grantSkin(player, skin.key)
 			notify(player, ("Unlocked the %s"):format(skin.name))
+		elseif pass then
+			grantPass(player, pass.key)
+			notify(player, ("%s unlocked — %s"):format(pass.name, pass.description:lower()))
 		end
 	end)
 
@@ -220,17 +265,11 @@ function MonetizationService.start()
 		onPlayerAdded(player)
 	end
 
-	-- Once a second: 2x Money counts down while the player is online, and
-	-- held freaks expire.
+	-- Once a second: held freaks expire.
 	task.spawn(function()
 		while true do
 			task.wait(1)
 			for _, player in Players:GetPlayers() do
-				local data = DataService.get(player)
-				if data and data.boost2xSecondsLeft > 0 then
-					data.boost2xSecondsLeft = math.max(0, data.boost2xSecondsLeft - 1)
-					DataService.refresh(player)
-				end
 				local held = heldForRevive[player]
 				if held and os.clock() > held.heldUntil then
 					heldForRevive[player] = nil

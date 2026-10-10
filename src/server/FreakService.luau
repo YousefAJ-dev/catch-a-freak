@@ -455,6 +455,19 @@ function FreakService.pin(id: string, owner: Player, duration: number): boolean
 	return true
 end
 
+-- Sends a freak walking straight to `to` (the Golden Bear Trap's lure), unless
+-- it's pinned, being grabbed, or already headed there.
+function FreakService.lure(id: string, to: Vector3)
+	local freak = freaks[id]
+	if not freak or freak.pinnedBy or next(freak.holding) ~= nil then
+		return
+	end
+	local target = Vector3.new(to.X, freak.to.Y, to.Z)
+	if (freak.to - target).Magnitude > 0.5 then
+		setWaypoint(freak, target)
+	end
+end
+
 function FreakService.exists(id: string): boolean
 	return freaks[id] ~= nil
 end

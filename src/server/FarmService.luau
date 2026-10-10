@@ -121,7 +121,7 @@ local function updatePool(player: Player, plot: Plot)
 		return
 	end
 	-- What the farm actually earns right now, including 2x Money.
-	local income = incomeOf(data) * Formulas.moneyMultiplier(data.boost2xSecondsLeft)
+	local income = incomeOf(data) * Formulas.moneyMultiplier(data.ownedPasses)
 	player:SetAttribute("Uncollected", data.uncollected)
 	player:SetAttribute("FarmIncome", income)
 	setValueSign(plot, data.uncollected, income)
@@ -372,7 +372,7 @@ local function collect(player: Player, plot: Plot)
 	data.uncollected = 0
 	DataService.addMoney(player, amount)
 	updatePool(player, plot)
-	notify(player, ("Collected %s"):format(Format.money(amount)))
+	Remotes.FloatText:FireClient(player, "+" .. Format.money(amount), Color3.fromRGB(120, 255, 140))
 end
 
 -- Adds what the farm earned while the player was away (capped by Offline
@@ -517,7 +517,7 @@ function FarmService.start()
 			for player, plot in plotOf do
 				local data = DataService.get(player)
 				if data then
-					data.uncollected += incomeOf(data) * Formulas.moneyMultiplier(data.boost2xSecondsLeft) * INCOME_TICK
+					data.uncollected += incomeOf(data) * Formulas.moneyMultiplier(data.ownedPasses) * INCOME_TICK
 					updatePool(player, plot)
 				end
 			end

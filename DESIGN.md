@@ -171,7 +171,7 @@ Population is Ring 1's density (70 freaks over Ring 1's area) times each ring's 
 | Rainbow | 0.1% | ×50 | ×8 | Cycles through the rainbow (pink in menus) |
 | Radioactive | 0.1% | ×77 | ×8 | Yellow-green |
 
-The two top rarities are made to be spotted from across a ring: a light, a stream of sparkles, and a tint over the whole body (Rainbow's cycling through the rainbow, Radioactive's a strong yellow-green). They get their own outline instead of competing for the nearest-6 outlines. Carrying a Radioactive freak costs the carrier 1 HP per second, anywhere, and the Hazmat Suit doesn't reduce it (the HUD radiation warning includes it).
+The two top rarities are made to be spotted from across a ring: a light, a stream of sparkles, and a tint over the whole body (Rainbow's cycling through the rainbow, Radioactive's a strong yellow-green). They get their own outline instead of competing for the nearest-12 outlines. Carrying a Radioactive freak costs the carrier 1 HP per second, anywhere, and the Hazmat Suit doesn't reduce it (the HUD radiation warning includes it).
 
 ### Freakpedia
 
@@ -215,7 +215,7 @@ Names are placeholders. Rename freely. Species within a tier have identical stat
 - Each ring keeps its population constant. When a freak is caught or expires, a new one spawns 3 seconds later at a random point in the ring, at least 16 studs from any wall (clear of the terrain banks along the walls).
 - Each spawn picks a species at random (equal odds) and rolls rarity from the table above.
 - **Lifetime:** every freak expires 120–240 seconds after spawning (random per freak) and is replaced by a fresh roll. Without this, players take the rare ones and leave the Commons, nothing respawns, and the ring fills up with Commons. A freak that is being grabbed or is pinned by a trap does not expire.
-- Rarity is shown by an outline in the rarity color, on every rarity including Common. Only the nearest 6 freaks to the player are outlined at a time (Roblox renders at most ~31 outlines at once, and this keeps the view uncluttered), so a rare is something you spot up close rather than from across the ring. The body stays in its species color.
+- Rarity is shown by an outline in the rarity color, on every rarity including Common. Only the nearest 12 freaks to the player are outlined at a time (Roblox renders at most ~31 outlines at once, and this keeps the view uncluttered), so a rare is something you spot up close rather than from across the ring. The body stays in its species color.
 - Freaks placed in incubators show rarity through the incubator's floor light instead of an outline.
 - Freaks are shared by everyone on the server. The first player to finish a grab gets it.
 
@@ -285,7 +285,7 @@ Freaks in incubators:
 - The incubator's floor light glows in the freak's rarity color.
 - A freak's name, rarity, and income label only appears when a player is within 20 studs.
 - Each placed freak adds its income per second to the farm's uncollected pool.
-- Standing on the collection pad moves the whole pool into the wallet.
+- Standing on the collection pad moves the whole pool into the wallet, and "+$amount" rises over the player's head. Each player sees only their own pad in green (plain, no glow) with its COLLECT label; every other pad is grey.
 - From the farm panel a player can pick a placed freak back up into a free carry slot (to sell it or turn it in at a gate).
 - Other players cannot interact with your farm.
 
@@ -294,7 +294,7 @@ Freaks in incubators:
 - When the player leaves, save the timestamp.
 - When they return, add `farm income per second × seconds away` to the uncollected pool, capped at the offline limit.
 - Starting offline limit: 1 hour of earnings.
-- Offline earnings are never doubled by the 2x Money boost.
+- Offline earnings are never doubled by the 2x Money pass.
 - Show a "While you were away you earned $X" popup on join.
 
 ---
@@ -325,12 +325,15 @@ The first levels of each ring cost less than one run's haul there. Buying a ring
 
 Consumable. Bought at the shop. Price scales with the player's highest unlocked tier: `price = basePrice × 15 ^ (highestTier − 1)`. Players can hold up to 5 of each.
 
-Items are used with dedicated buttons, not carry slots: Q for Net Launcher, R for Bear Trap, plus on-screen buttons for mobile.
+Items are used with dedicated buttons, not carry slots: Q for Net Launcher, R for Bear Trap, T for Golden Bear Trap, plus on-screen buttons for mobile.
+
+**Rainbow and Radioactive freaks can only be trapped with the Golden Bear Trap.** Nets and plain Bear Traps ignore them (they can still be grabbed by hand).
 
 | Item | Base price | Behavior |
 |------|-----------|----------|
 | Net Launcher | 100 | Fires at a target point up to 40 studs away. Instantly catches up to 3 freaks within 15 studs of the impact, limited by free carry slots, with no hold time. Works on Common, Uncommon, and Rare. Has no effect on Epic or Legendary. One use. |
-| Bear Trap | 50 | Placed on the ground. The first freak to walk over it is pinned for 30 seconds. A pinned freak takes 0.5 seconds to grab regardless of tier or rarity, and only the trap's owner can grab it while pinned. The trap disappears after it triggers or after 120 seconds. One active trap per player: setting another removes the old one. One use. |
+| Bear Trap | 50 | Placed on the ground. The first freak to walk over it is pinned for 30 seconds. A pinned freak takes 0.5 seconds to grab regardless of tier or rarity, and only the trap's owner can grab it while pinned. The trap disappears after it triggers or after 120 seconds. One active trap per player: setting another removes the old one. Rainbow and Radioactive freaks walk over it. One use. |
+| Golden Bear Trap | Robux only (Developer Product) | Gold and sparkling. Only Rainbow and Radioactive freaks trigger it; any in the trap's zone within 150 studs walk straight to it, and the first to arrive is pinned for 60 seconds (a 0.5-second grab for the owner). Never rusts, and only comes off the player's count when it pins a freak: setting it again moves it, and leaving with it set loses nothing. Its own slot, separate from the plain trap. |
 
 ### Selling
 
@@ -385,11 +388,12 @@ Located in the shop. One free spin per UTC day. The player needs one free carry 
 
 ## 10. Monetization
 
-Build this last, after the loop is fun. Product and Game Pass IDs live in `Config/Products.luau`; negative IDs are placeholders until the products are created in Creator Hub (prices are set there, not in code). While an ID is a placeholder its Buy button explains that instead of opening a purchase prompt, and in Studio `/buy <money2x|extraSpin|revive> [purchaseId]` and `/buyskin <key>` run the real grant code with a simulated purchase.
+Build this last, after the loop is fun. Product and Game Pass IDs live in `Config/Products.luau`; negative IDs are placeholders until the products are created in Creator Hub (prices are set there, not in code). While an ID is a placeholder its Buy button explains that instead of opening a purchase prompt, and in Studio `/buy <goldenTrap|extraSpin|revive> [purchaseId]`, `/buypass money2x` and `/buyskin <key>` run the real grant code with a simulated purchase.
 
 | Product | Type | Behavior |
 |---------|------|----------|
-| 2x Money (2 hours) | Developer Product | Doubles farm income and sell payouts for 120 minutes of in-game time. The timer only counts down while the player is online. Buying again adds another 120 minutes. Shown as a HUD timer. |
+| 2x Money | Game Pass | Permanently doubles farm income and sell payouts (never offline earnings). Shown as a "2x MONEY · ACTIVE" badge under the money display. |
+| Golden Bear Trap | Developer Product | One Golden Bear Trap (section 7, Items). |
 | Extra Wheel Spin | Developer Product | Grants one extra spin, usable immediately. |
 | Upgrade Skins | Game Pass per skin set | Cosmetic only, no gameplay effect. The equipped set recolors the character as a suit and boots (hiding the avatar's shirt and pants), with goggles and, for some sets, a glow: Lab Coat (white, goggles), Toxic (glowing green), Gold (gilded). |
 | Respawn with Caught Freaks | Developer Product | Offered for 10 seconds after dying while carrying at least one freak of any rarity. On purchase the player respawns at their farm still carrying everything. |
@@ -405,7 +409,7 @@ Rules:
 
 | Screen | Contents |
 |--------|----------|
-| HUD | Money (a large glowing badge top right that bumps and floats "+$X" on every gain), health bar, radiation warning while in a ring, item buttons with counts, dash button with its cooldown (once owned), 2x timer when active |
+| HUD | Money (a large glowing badge top right that bumps and floats "+$X" on every gain), health bar, radiation warning while in a ring, item buttons with counts, dash button with its cooldown (once owned), 2x Money badge for pass owners |
 | Carry bar | 9 slots along the bottom. Each filled slot shows the species icon with a rarity-colored border. This is a custom UI, not the Roblox backpack. Disable the default backpack. |
 | Grab bar | Fills while holding a grab |
 | Shop | Tabs: Upgrades, Items, Skins. Each row shows current level, effect, and next cost. |
@@ -415,7 +419,7 @@ Rules:
 | Wheel | Opened by the Spin prompt at the wheel. A strip of prize segments sized by their odds, with a pointer that sweeps and lands on the result while the wheel in the shop spins; the odds table; spin button; time until the next free spin and any extra spins |
 | Panel style | Every menu panel (shop, sell, farm, gate, wheel) is 440×540, docked right, with a header bar and border in its own accent color (shop blue, sell gold, farm green, gate purple, wheel pink; `UiKit.accents`) and a drop shadow. |
 | Popups | Offline earnings on join, revive offer on death, tier unlocked, Freakpedia page complete |
-| Freakpedia | Opened by the book button on the left of the HUD, or P. A tab per ring. Each species card shows its model (a black silhouette until caught), its name ("???" until caught) and a pip per rarity, lit once caught. The footer shows the page reward, the total bonus and pages complete. |
+| Freakpedia | Opened by the book button on the left of the HUD (which shows a "P" keycap on keyboards), or P. The panel can be dragged by its title bar and stays where it's put. A new entry floats "📖 New entry +$reward" over the player's head and adds to a red count badge on the button's top-right corner, cleared when the book is opened. A tab per ring. Each species card shows its model (a black silhouette until caught), its name ("???" until caught) and a pip per rarity, lit once caught. The footer shows the page reward, the total bonus and pages complete. |
 
 ---
 
@@ -475,7 +479,7 @@ src/
     CarryService.luau    each player's 9 carry slots
     FarmService.luau     plots, placing, income, collecting
     ShopService.luau     upgrades, items, selling
-    ItemService.luau     net launcher, bear trap
+    ItemService.luau     net launcher, bear trap, golden bear trap
     GateService.luau     turn-ins, tier unlocks
     FreakpediaService.luau  records new entries, pays discovery rewards
     WheelService.luau
@@ -509,7 +513,7 @@ One record per player, saved with **ProfileStore** (decided in Milestone 6) for 
   version = 1,
   money = 0,
   upgrades = { shoes = 0, hazmat = 0, grip = 0, farmCapacity = 0, offlineCapacity = 0 },
-  items = { netLauncher = 0, bearTrap = 0 },
+  items = { netLauncher = 0, bearTrap = 0, goldenTrap = 0 },
   highestTier = 1,
   gateProgress = { 0, 0 },           -- freaks turned in for each requirement of the current gate
   playSeconds = 0,                   -- total play time, for tuning the pace
@@ -520,7 +524,7 @@ One record per player, saved with **ProfileStore** (decided in Milestone 6) for 
   uncollected = 0,
   lastSeen = 0,                       -- os.time() at last save
   wheel = { lastFreeSpinDay = 0, extraSpins = 0 },
-  boost2xSecondsLeft = 0,
+  ownedPasses = {},                   -- gameplay Game Pass keys ("money2x"); re-checked on join
   ownedSkins = {},                    -- skin set keys; Game Passes are re-checked on join
   equippedSkin = "",                  -- "" for none
   processedReceipts = {},             -- last 50 purchase IDs

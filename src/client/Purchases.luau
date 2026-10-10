@@ -1,5 +1,5 @@
 --!strict
--- Opens Roblox purchase prompts for Developer Products and skin Game Passes,
+-- Opens Roblox purchase prompts for Developer Products and Game Passes,
 -- and looks up their Robux prices for display. Purchases are granted on the
 -- server (MonetizationService); this only starts them.
 --
@@ -20,7 +20,7 @@ local Purchases = {}
 local prices: { [number]: number } = {}
 
 local function notSetUp(name: string)
-	NotifyController.show(("%s isn't set up in Creator Hub yet (Studio: /buy or /buyskin)"):format(name))
+	NotifyController.show(("%s isn't set up in Creator Hub yet (Studio: /buy, /buypass or /buyskin)"):format(name))
 end
 
 -- "R$ 99", or "R$ —" when the ID is a placeholder or the lookup fails.
@@ -49,6 +49,14 @@ function Purchases.promptProduct(key: string)
 		return
 	end
 	MarketplaceService:PromptProductPurchase(player, product.id)
+end
+
+function Purchases.promptPass(pass: Products.Pass)
+	if pass.passId <= 0 then
+		notSetUp(pass.name)
+		return
+	end
+	MarketplaceService:PromptGamePassPurchase(player, pass.passId)
 end
 
 function Purchases.promptSkin(skin: Products.SkinSet)

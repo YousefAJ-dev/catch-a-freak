@@ -71,5 +71,5 @@ return {
 	grabRange = 10,
 	-- Only the nearest few freaks get a rarity outline: Roblox renders at most
 	-- ~31 outlines (Highlights) at once, and this keeps the view uncluttered.
-	outlinedNearest = 6,
+	outlinedNearest = 12,
 }

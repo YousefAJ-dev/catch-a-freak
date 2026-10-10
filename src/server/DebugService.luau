@@ -6,15 +6,16 @@
 --   /spawnfreak <tier> <rarity> [species]  spawn a freak in front of you,
 --                             e.g. /spawnfreak 2 Epic or /spawnfreak 1 Rare Glowbug
 --   /money <amount>           set your money
---   /item <id> <count>        set an item count (netLauncher, bearTrap)
+--   /item <id> <count>        set an item count (netLauncher, bearTrap, goldenTrap)
 --   /offline <seconds>        pay out offline earnings as if you'd been away that long
 --   /wipe                     reset your saved data to a new player's and kick you
 --   /wheel reset              make today's free wheel spin available again
 --   /wheel spins <count>      set your extra wheel spins
---   /buy <money2x|extraSpin|revive> [purchaseId]  simulate a Developer Product
+--   /buy <goldenTrap|extraSpin|revive> [purchaseId]  simulate a Developer Product
 --                             purchase through the real receipt handler; reuse a
 --                             purchaseId to replay a receipt
 --   /buyskin <key>            simulate buying a skin set Game Pass
+--   /buypass <key>            simulate buying a gameplay Game Pass (money2x)
 --   /policy restricted|open   pretend paid random items are (not) restricted
 --   /time <day|dusk|night|dawn>  jump the day/night cycle to that phase, for everyone
 -- Results print to the Output window.
@@ -98,7 +99,7 @@ local commands: { Command } = {
 	},
 	{
 		alias = "/buy",
-		usage = "/buy <money2x|extraSpin|revive> [purchaseId]",
+		usage = "/buy <goldenTrap|extraSpin|revive> [purchaseId]",
 		run = function(player, args)
 			assert(args[1], "expected a product key")
 			return MonetizationService.simulatePurchase(player, args[1], args[2])
@@ -110,6 +111,14 @@ local commands: { Command } = {
 		run = function(player, args)
 			assert(args[1], "expected a skin key")
 			return MonetizationService.simulateSkinPurchase(player, args[1])
+		end,
+	},
+	{
+		alias = "/buypass",
+		usage = "/buypass <key>",
+		run = function(player, args)
+			assert(args[1], "expected a pass key")
+			return MonetizationService.simulatePassPurchase(player, args[1])
 		end,
 	},
 	{

@@ -119,10 +119,10 @@ function Formulas.incomePerSecond(tier: number, rarityId: string, effects: { any
 	return Tiers[tier].baseIncome * Rarities.byId[rarityId].incomeMultiplier * Formulas.effectsMultiplier(effects)
 end
 
--- Multiplier on farm income and sell payouts while 2x Money is active.
--- Never applied to offline earnings.
-function Formulas.moneyMultiplier(boostSecondsLeft: number): number
-	return if boostSecondsLeft > 0 then 2 else 1
+-- Multiplier on farm income and sell payouts: 2 for owners of the 2x Money
+-- Game Pass (Config/Products.passes). Never applied to offline earnings.
+function Formulas.moneyMultiplier(ownedPasses: { string }): number
+	return if table.find(ownedPasses, "money2x") then 2 else 1
 end
 
 function Formulas.sellPrice(tier: number, rarityId: string, effects: { any }?): number

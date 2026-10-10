@@ -15,7 +15,7 @@ local EVENTS = {
 	"BuyUpgrade", -- client -> server: (upgradeId: string) buy the next level
 	"BuyItem", -- client -> server: (itemId: string) buy one item
 	"UseNetLauncher", -- client -> server: (target: Vector3) fire a net at a point
-	"PlaceBearTrap", -- client -> server: () set a trap where the player stands
+	"PlaceBearTrap", -- client -> server: (kind: "bearTrap" | "goldenTrap") set a trap where the player stands
 	"TurnIn", -- client -> server: (requirement: number, source: "carry" | "farm", index: number) gate turn-in
 	"Dash", -- client -> server: () the player dashed (server enforces the cooldown)
 	"SpinWheel", -- client -> server: () spin the daily wheel
@@ -25,6 +25,7 @@ local EVENTS = {
 	"EquipSkin", -- client -> server: (skinKey: string) equip an owned skin set, or "" for none
 	"NetImpact", -- server -> all clients: (position: Vector3, caught: number) net visual
 	"Popup", -- server -> client: (title: string, body: string) message the player dismisses
+	"FloatText", -- server -> client: (text: string, color: Color3) rises and fades over the player's head
 }
 
 local folder: Folder

@@ -18,7 +18,7 @@ export type Upgrade = {
 	requires: { upgrade: string, level: number }?, -- must own this first
 }
 
-local GEAR_GROWTH = 125 ^ (1 / 5)
+local GEAR_GROWTH = 110 ^ (1 / 5)
 
 local Upgrades: { [string]: Upgrade } = {
 	-- +walk speed per level (capped by PlayerConfig.maxWalkSpeed; level 16 reaches it)

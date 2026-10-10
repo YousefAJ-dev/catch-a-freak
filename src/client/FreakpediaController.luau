@@ -4,12 +4,16 @@
 -- species shows its model (a black silhouette until it's been caught at any
 -- rarity), its name ("???" until caught), and a pip per rarity, lit for the
 -- rarities caught. The footer shows the page reward and the total bonus.
+-- A red badge on the button counts entries caught since the panel was last
+-- opened, and a "P" keycap on it shows the shortcut (keyboards only). The
+-- panel can be dragged around by its title bar and stays where it's put.
 -- Discoveries and rewards are decided by the server (FreakpediaService); this
 -- only displays the "Freakpedia" attribute.
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage.Shared
@@ -157,6 +161,57 @@ function FreakpediaController.start()
 	})
 	UiKit.corner(close, 6)
 
+	-- Drag the panel by its title bar (everything above the tabs except the X).
+	local handle = UiKit.make("Frame", {
+		Name = "DragHandle",
+		Size = UDim2.new(1, -48, 0, 44),
+		BackgroundTransparency = 1,
+		Active = true,
+		ZIndex = 5,
+		Parent = frame,
+	})
+	local dragging: InputObject? = nil
+	local dragStart = Vector2.zero
+	local centerStart = Vector2.zero
+	handle.InputBegan:Connect(function(input)
+		local kind = input.UserInputType
+		if kind ~= Enum.UserInputType.MouseButton1 and kind ~= Enum.UserInputType.Touch then
+			return
+		end
+		dragging = input
+		dragStart = Vector2.new(input.Position.X, input.Position.Y)
+		centerStart = frame.AbsolutePosition + frame.AbsoluteSize / 2
+		local ended
+		ended = input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = nil
+				ended:Disconnect()
+			end
+		end)
+	end)
+	UserInputService.InputChanged:Connect(function(input)
+		if not dragging then
+			return
+		end
+		local moved = input.UserInputType == Enum.UserInputType.MouseMovement
+			or (input.UserInputType == Enum.UserInputType.Touch and input == dragging)
+		if not moved then
+			return
+		end
+		-- Work in screen pixels, keep the title bar on screen, then convert back
+		-- to an offset from the screen's center (undoing any UI scaling).
+		local screen = gui.AbsoluteSize
+		local size = frame.AbsoluteSize
+		local center = centerStart + Vector2.new(input.Position.X, input.Position.Y) - dragStart
+		center = Vector2.new(
+			math.clamp(center.X, 40 - size.X / 2, screen.X - 40 + size.X / 2),
+			math.clamp(center.Y, size.Y / 2, screen.Y - 44 + size.Y / 2)
+		)
+		local scale = size.X / frame.Size.X.Offset
+		local offset = (center - screen / 2) / scale
+		frame.Position = UDim2.new(0.5, offset.X, 0.5, offset.Y)
+	end)
+
 	local tabBar = UiKit.make("Frame", {
 		Position = UDim2.fromOffset(16, 46),
 		Size = UDim2.new(1, -32, 0, 30),
@@ -204,6 +259,20 @@ function FreakpediaController.start()
 
 	local tierCount = #FreakConfig.species
 	local page = 1
+
+	local function entryCount(): number
+		local entries = 0
+		for _, list in discovered() do
+			entries += #list
+		end
+		return entries
+	end
+	-- Entries the player has already seen in the panel; the button's badge
+	-- counts the ones caught since. Starts at what they had on joining (once
+	-- their data has loaded and the attribute exists).
+	local seen = entryCount()
+	local loaded = player:GetAttribute("Freakpedia") ~= nil
+	local updateBadge: () -> () = function() end
 	local tabButtons: { TextButton } = {}
 
 	local function render()
@@ -319,6 +388,10 @@ function FreakpediaController.start()
 			page = math.clamp((player:GetAttribute("HighestTier") :: number?) or 1, 1, tierCount)
 		end
 		gui.Enabled = open
+		if open then
+			seen = entryCount()
+			updateBadge()
+		end
 		render()
 	end
 
@@ -332,20 +405,84 @@ function FreakpediaController.start()
 	local button = UiKit.make("TextButton", {
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.new(0, 16, 0.5, 0),
-		Size = UDim2.fromOffset(160, 48),
+		Size = UDim2.fromOffset(190, 48),
 		BackgroundColor3 = Color3.fromRGB(25, 28, 34),
 		BackgroundTransparency = 0.1,
+		Text = "",
+		Parent = hud,
+	})
+	local title = UiKit.make("TextLabel", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
 		Font = Enum.Font.GothamBlack,
 		TextSize = 18,
 		TextColor3 = UiKit.colors.text,
 		Text = "📖 Freakpedia",
-		Parent = hud,
+		Parent = button,
 	})
 	UiKit.corner(button, 12)
 	UiKit.make("UIStroke", { Color = UiKit.accents.freakpedia, Thickness = 2.5, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = button })
+	-- "P" keycap on the left of the button, for players with a keyboard.
+	local keycap = UiKit.make("TextLabel", {
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 10, 0.5, 0),
+		Size = UDim2.fromOffset(26, 26),
+		BackgroundColor3 = Color3.fromRGB(235, 238, 242),
+		Font = Enum.Font.GothamBlack,
+		TextSize = 16,
+		TextColor3 = Color3.fromRGB(25, 28, 34),
+		Text = "P",
+		Parent = button,
+	})
+	UiKit.corner(keycap, 6)
+	UiKit.make("UIStroke", { Color = UiKit.accents.freakpedia, Thickness = 1.5, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = keycap })
+	local function updateKeycap()
+		keycap.Visible = UserInputService.KeyboardEnabled
+		-- Centered in the space right of the keycap when it shows.
+		title.Position = UDim2.fromOffset(if keycap.Visible then 36 else 0, 0)
+		title.Size = UDim2.new(1, if keycap.Visible then -36 else 0, 1, 0)
+	end
+	UserInputService:GetPropertyChangedSignal("KeyboardEnabled"):Connect(updateKeycap)
+	updateKeycap()
 	button.Activated:Connect(function()
 		Sfx.play("click")
 		setOpen(not gui.Enabled)
+	end)
+
+	-- Red badge on the button's top-right corner: new entries not seen yet.
+	local badge = UiKit.make("TextLabel", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(1, -4, 0, 4),
+		Size = UDim2.fromOffset(28, 28),
+		BackgroundColor3 = Color3.fromRGB(230, 40, 40),
+		Font = Enum.Font.GothamBlack,
+		TextSize = 16,
+		TextColor3 = Color3.new(1, 1, 1),
+		Text = "",
+		Visible = false,
+		ZIndex = 2,
+		Parent = button,
+	})
+	UiKit.corner(badge, 14)
+	UiKit.make("UIStroke", { Color = Color3.new(1, 1, 1), Thickness = 2, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = badge })
+	local badgeScale = UiKit.make("UIScale", { Parent = badge })
+	local lastUnseen = 0
+	updateBadge = function()
+		local unseen = if gui.Enabled then 0 else math.max(entryCount() - seen, 0)
+		badge.Visible = unseen > 0
+		badge.Text = if unseen > 99 then "99+" else tostring(unseen)
+		if unseen > lastUnseen then
+			badgeScale.Scale = 1.5
+			TweenService:Create(badgeScale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+		end
+		lastUnseen = unseen
+	end
+	player:GetAttributeChangedSignal("Freakpedia"):Connect(function()
+		if gui.Enabled or not loaded then
+			seen = entryCount() -- caught while looking at the book, or just loaded
+			loaded = true
+		end
+		updateBadge()
 	end)
 
 	UserInputService.InputBegan:Connect(function(input, processed)

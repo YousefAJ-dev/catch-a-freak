@@ -1,6 +1,7 @@
 --!strict
 -- Item buttons (DESIGN.md sections 7 and 11): Q fires the Net Launcher at the
--- point under the mouse, R sets a Bear Trap where the player stands. On-screen
+-- point under the mouse, R sets a Bear Trap and T the Golden Bear Trap where
+-- the player stands. On-screen
 -- buttons do the same for mobile (the net then fires straight ahead). Counts
 -- come from the "Item_<id>" attributes; ItemService does everything else.
 
@@ -55,9 +56,20 @@ local function fireNet(useMouse: boolean)
 	end
 end
 
-local function placeTrap()
-	Remotes.PlaceBearTrap:FireServer()
+local function placeTrap(kind: string)
+	Remotes.PlaceBearTrap:FireServer(kind)
 	Sfx.play("trap")
+end
+
+local LABELS = { netLauncher = "Net", bearTrap = "Trap", goldenTrap = "Gold" }
+local GOLD = Color3.fromRGB(255, 200, 60)
+
+local function use(id: string, useMouse: boolean)
+	if id == "netLauncher" then
+		fireNet(useMouse)
+	else
+		placeTrap(id)
+	end
 end
 
 -- A quick expanding ring where a net lands, seen by everyone.
@@ -94,7 +106,7 @@ local function buildButtons(): { [string]: TextLabel }
 	local holder = UiKit.make("Frame", {
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.new(0.5, 292, 1, -16),
-		Size = UDim2.fromOffset(BUTTON * 2 + 8, BUTTON),
+		Size = UDim2.fromOffset(BUTTON * #Items.buttons + 8 * (#Items.buttons - 1), BUTTON),
 		BackgroundTransparency = 1,
 		Parent = gui,
 	})
@@ -106,19 +118,25 @@ local function buildButtons(): { [string]: TextLabel }
 	})
 
 	local counts = {}
-	for order, id in Items.order do
+	for order, id in Items.buttons do
 		local item = (Items :: any)[id]
+		local golden = id == "goldenTrap"
 		local button = UiKit.make("TextButton", {
 			Name = id,
 			LayoutOrder = order,
 			Size = UDim2.fromOffset(BUTTON, BUTTON),
-			BackgroundColor3 = UiKit.colors.panel,
+			BackgroundColor3 = if golden then Color3.fromRGB(70, 52, 10) else UiKit.colors.panel,
 			BackgroundTransparency = 0.15,
 			Text = "",
 			Parent = holder,
 		})
 		UiKit.corner(button, 10)
-		UiKit.make("UIStroke", { Color = Color3.fromRGB(90, 100, 115), Thickness = 1.5, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = button })
+		UiKit.make("UIStroke", {
+			Color = if golden then GOLD else Color3.fromRGB(90, 100, 115),
+			Thickness = if golden then 2.5 else 1.5,
+			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+			Parent = button,
+		})
 		UiKit.make("TextLabel", {
 			Position = UDim2.fromOffset(6, 4),
 			Size = UDim2.fromOffset(20, 16),
@@ -136,8 +154,8 @@ local function buildButtons(): { [string]: TextLabel }
 			BackgroundTransparency = 1,
 			Font = Enum.Font.GothamBold,
 			TextScaled = true,
-			TextColor3 = UiKit.colors.text,
-			Text = if id == "netLauncher" then "Net" else "Trap",
+			TextColor3 = if golden then GOLD else UiKit.colors.text,
+			Text = LABELS[id],
 			Parent = button,
 		})
 		counts[id] = UiKit.make("TextLabel", {
@@ -153,11 +171,7 @@ local function buildButtons(): { [string]: TextLabel }
 			Parent = button,
 		})
 		button.Activated:Connect(function()
-			if id == "netLauncher" then
-				fireNet(false)
-			else
-				placeTrap()
-			end
+			use(id, false)
 		end)
 	end
 	gui.Parent = player:WaitForChild("PlayerGui")
@@ -173,7 +187,7 @@ function ItemController.start()
 			label.TextColor3 = if count > 0 then UiKit.colors.money else UiKit.colors.muted
 		end
 	end
-	for _, id in Items.order do
+	for _, id in Items.buttons do
 		player:GetAttributeChangedSignal("Item_" .. id):Connect(renderCounts)
 	end
 	renderCounts()
@@ -182,10 +196,10 @@ function ItemController.start()
 		if gameProcessed then
 			return
 		end
-		if input.KeyCode == Items.netLauncher.key then
-			fireNet(true)
-		elseif input.KeyCode == Items.bearTrap.key then
-			placeTrap()
+		for _, id in Items.buttons do
+			if input.KeyCode == (Items :: any)[id].key then
+				use(id, true)
+			end
 		end
 	end)
 

@@ -19,24 +19,25 @@ local Gates: { Gate } = {
 	{
 		unlocksTier = 2,
 		requirements = {
-			{ species = "Twitcher", rarity = "Uncommon", count = 1 },
+			{ species = "Twitcher", rarity = "Uncommon", count = 2 },
 			{ species = "Glowbug", rarity = "Rare", count = 1 },
-			{ species = "Glowbug", rarity = "Rare", count = 1 }
+			{ species = "Gnashling", rarity = "Epic", count = 1 }
 		},
 	},
 	{
 		unlocksTier = 3,
 		requirements = {
 			{ species = "Rustback", rarity = "Rare", count = 2 },
-			{ species = "Gloomhound", rarity = "Uncommon", count = 2 },
+			{ species = "Gloomhound", rarity = "Uncommon", count = 3 },
+			{ species = "Splitjaw", rarity = "Epic", count = 2 },
 		},
 	},
 	{
 		unlocksTier = 4,
 		requirements = {
-			{ species = "Sludgelet", rarity = "Rare", count = 3 },
+			{ species = "Sludgelet", rarity = "Uncommon", count = 4 },
 			{ species = "Hexwing", rarity = "Rare", count = 3 },
-			{ species = "Bloatworm", rarity = "Epic", count = 2 },
+			{ species = "Bloatworm", rarity = "Epic", count = 3 },
 			{ species = { "Bloatworm", "Hexwing", "Sludgelet" }, rarity = "Legendary", count = 1 },
 		},
 	},
@@ -46,7 +47,7 @@ local Gates: { Gate } = {
 			{ species = "Voidmoth", rarity = "Uncommon", count = 5 },
 			{ species = "Tri-Eye", rarity = "Rare", count = 4 },
 			{ species = "Nightmare", rarity = "Epic", count = 3 },
-			{ species = { "Nightmare", "Tri-Eye", "Voidmoth" }, rarity = "Legendary", count = 1 },
+			{ species = { "Nightmare", "Tri-Eye", "Voidmoth" }, rarity = "Legendary", count = 2 },
 		},
 	},
 }

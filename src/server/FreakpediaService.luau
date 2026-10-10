@@ -27,7 +27,8 @@ function FreakpediaService.record(player: Player, freak: { species: string, tier
 	end
 	local reward = math.floor(Freakpedia.discoveryReward * Formulas.sellPrice(freak.tier, freak.rarity))
 	DataService.addMoney(player, reward)
-	Remotes.Notify:FireClient(player, ("New Freakpedia entry: %s %s!  +%s"):format(freak.rarity, freak.species, Format.money(reward)))
+	-- The Freakpedia button also shows a red badge with the unseen count.
+	Remotes.FloatText:FireClient(player, ("📖 New entry  +%s"):format(Format.money(reward)), Color3.fromRGB(170, 235, 80))
 
 	for _, tier in Formulas.freakpediaProgress(data.freakpedia) do
 		if table.find(pagesBefore, tier) then
