@@ -538,6 +538,26 @@ local function buildPlots(map: Instance)
 		-- Short range so the eight COLLECT labels don't clutter the view from the shop.
 		label(collectPad, "COLLECT", 3, Color3.fromRGB(120, 255, 140), 60)
 
+		-- 2x Money pad on the other side of the collection pad. Grey for everyone;
+		-- each client lights up its own and prompts the Game Pass on it
+		-- (MoneyPadController).
+		local moneyPad = part({
+			Name = "MoneyPad",
+			CFrame = cf * CFrame.new(-(cfg.collectPadSize / 2 + 9), -0.3, collectZ),
+			Size = Vector3.new(cfg.collectPadSize, 0.4, cfg.collectPadSize),
+			Color = Color3.fromRGB(95, 100, 105),
+			Material = Enum.Material.SmoothPlastic,
+			CanCollide = false,
+			Parent = plot,
+		})
+		local moneyLight = Instance.new("PointLight")
+		moneyLight.Color = Color3.fromRGB(255, 205, 80)
+		moneyLight.Range = 10
+		moneyLight.Brightness = 1.5
+		moneyLight.Enabled = false
+		moneyLight.Parent = moneyPad
+		label(moneyPad, "2x MONEY", 3, Color3.fromRGB(255, 215, 90), 60)
+
 		-- Value sign beside the collection pad: money generated and waiting to be
 		-- collected, plus the farm's income per second. FarmService fills these in.
 		local valueGui = signBoard(plot, "ValueSign", cf * CFrame.new(cfg.collectPadSize / 2 + 6, -0.5, collectZ), 10, 5, 4)

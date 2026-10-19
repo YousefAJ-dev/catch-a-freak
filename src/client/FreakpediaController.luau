@@ -1,14 +1,18 @@
 --!strict
 -- Freakpedia panel (DESIGN.md sections 5 and 11): the book button on the left
 -- of the HUD (or P) opens it. One page per ring, picked with tabs; each
--- species shows its model (a black silhouette until it's been caught at any
--- rarity), its name ("???" until caught), and a pip per rarity, lit for the
--- rarities caught. The footer shows the page reward and the total bonus.
--- A red badge on the button counts entries caught since the panel was last
--- opened, and a "P" keycap on it shows the shortcut (keyboards only). The
--- panel can be dragged around by its title bar and stays where it's put.
+-- species shows its model (a black silhouette until it's been collected at
+-- any rarity), its name ("???" until then), and a pip per rarity, lit for the
+-- rarities collected. The footer shows the page reward and the total bonus.
+--
+-- A freak becomes a new entry once it's put in an incubator. New entries wait
+-- on their species' card (a half-lit pip and a CLAIM button that pays the
+-- reward); the red badge on the book button counts them, and each ring tab
+-- shows how many it has. A "P" keycap on the button shows the shortcut
+-- (keyboards only). The panel can be dragged around by its title bar and stays
+-- where it's put.
 -- Discoveries and rewards are decided by the server (FreakpediaService); this
--- only displays the "Freakpedia" attribute.
+-- only displays the "Freakpedia" and "FreakpediaPending" attributes.
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -18,6 +22,8 @@ local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage.Shared
 local Formulas = require(Shared.Formulas)
+local Format = require(Shared.Format)
+local Remotes = require(Shared.Remotes)
 local FreakConfig = require(Shared.Config.Freaks)
 local Freakpedia = require(Shared.Config.Freakpedia)
 local Rarities = require(Shared.Config.Rarities)
@@ -40,9 +46,26 @@ local RAINBOW = ColorSequence.new({
 
 local FreakpediaController = {}
 
-local function discovered(): { [string]: { string } }
-	local ok, value = pcall(HttpService.JSONDecode, HttpService, (player:GetAttribute("Freakpedia") :: string?) or "{}")
+local tierOf: { [string]: number } = {}
+for tier, list in FreakConfig.species do
+	for _, species in list do
+		tierOf[species.name] = tier
+	end
+end
+
+local function decodeBook(attribute: string): { [string]: { string } }
+	local ok, value = pcall(HttpService.JSONDecode, HttpService, (player:GetAttribute(attribute) :: string?) or "{}")
 	return if ok and typeof(value) == "table" then value else {}
+end
+
+-- Claimed entries: species -> rarities.
+local function discovered(): { [string]: { string } }
+	return decodeBook("Freakpedia")
+end
+
+-- Entries in an incubator but not claimed yet.
+local function pendingEntries(): { [string]: { string } }
+	return decodeBook("FreakpediaPending")
 end
 
 local function totalEntries(): number
@@ -93,21 +116,23 @@ local function viewport(parent: Instance, species: any, known: boolean)
 	frame.CurrentCamera = camera
 end
 
-local function pip(parent: Instance, order: number, rarity: any, caught: boolean)
+-- A rarity pip: lit when claimed, half-lit when waiting to be claimed.
+local function pip(parent: Instance, order: number, rarity: any, caught: boolean, pending: boolean)
 	local dot = UiKit.make("Frame", {
 		LayoutOrder = order,
 		Size = UDim2.fromOffset(16, 16),
-		BackgroundColor3 = if caught then rarity.color else Color3.fromRGB(45, 49, 57),
+		BackgroundColor3 = if caught or pending then rarity.color else Color3.fromRGB(45, 49, 57),
+		BackgroundTransparency = if pending then 0.55 else 0,
 		Parent = parent,
 	})
 	UiKit.corner(dot, 8)
 	UiKit.make("UIStroke", {
 		Color = rarity.color,
 		Thickness = 1.5,
-		Transparency = if caught then 0 else 0.55,
+		Transparency = if caught or pending then 0 else 0.55,
 		Parent = dot,
 	})
-	if caught and rarity.rainbow then
+	if (caught or pending) and rarity.rainbow then
 		dot.BackgroundColor3 = Color3.new(1, 1, 1)
 		UiKit.make("UIGradient", { Color = RAINBOW, Parent = dot })
 	end
@@ -251,7 +276,7 @@ function FreakpediaController.start()
 	local pageLine = footerLine(-84, Enum.Font.GothamBold, UiKit.colors.text)
 	local bonusLine = footerLine(-58, Enum.Font.GothamBold, UiKit.colors.money)
 	local hintLine = footerLine(-34, Enum.Font.Gotham, UiKit.colors.muted)
-	hintLine.Text = ("Every new entry pays its sell price. Each %s or %s entry adds +%d%% farm income."):format(
+	hintLine.Text = ("Put a new freak in an incubator, then CLAIM it here for its sell price. Each %s or %s entry adds +%d%%."):format(
 		Freakpedia.shinyRarities[1],
 		Freakpedia.shinyRarities[2],
 		math.round(Freakpedia.shinyBonus * 100)
@@ -260,19 +285,16 @@ function FreakpediaController.start()
 	local tierCount = #FreakConfig.species
 	local page = 1
 
-	local function entryCount(): number
+	-- Entries waiting to be claimed, in one ring or (tier nil) all of them.
+	local function pendingCount(tier: number?): number
 		local entries = 0
-		for _, list in discovered() do
-			entries += #list
+		for name, list in pendingEntries() do
+			if tierOf[name] and (tier == nil or tierOf[name] == tier) then
+				entries += #list
+			end
 		end
 		return entries
 	end
-	-- Entries the player has already seen in the panel; the button's badge
-	-- counts the ones caught since. Starts at what they had on joining (once
-	-- their data has loaded and the attribute exists).
-	local seen = entryCount()
-	local loaded = player:GetAttribute("Freakpedia") ~= nil
-	local updateBadge: () -> () = function() end
 	local tabButtons: { TextButton } = {}
 
 	local function render()
@@ -280,6 +302,7 @@ function FreakpediaController.start()
 			return
 		end
 		local caughtBySpecies = discovered()
+		local pendingBySpecies = pendingEntries()
 		local pages = Formulas.freakpediaProgress(caughtBySpecies)
 		local highest = (player:GetAttribute("HighestTier") :: number?) or 1
 
@@ -292,13 +315,19 @@ function FreakpediaController.start()
 		for tier, button in tabButtons do
 			button.BackgroundColor3 = if tier == page then UiKit.colors.action else UiKit.colors.row
 			local locked = tier > math.min(highest, Release.releasedTiers)
-			button.Text = ("Ring %d%s"):format(tier, if table.find(pages, tier) then " ✓" elseif locked then " 🔒" else "")
+			local waiting = pendingCount(tier)
+			button.Text = ("Ring %d%s"):format(
+				tier,
+				if waiting > 0 then (" (%d)"):format(waiting) elseif table.find(pages, tier) then " ✓" elseif locked then " 🔒" else ""
+			)
+			button.TextColor3 = if waiting > 0 then Color3.fromRGB(255, 215, 90) else UiKit.colors.text
 		end
 
 		UiKit.clear(cards)
 		for i, species in FreakConfig.species[page] do
 			local caught = caughtBySpecies[species.name] or {}
-			local known = #caught > 0
+			local pending = pendingBySpecies[species.name] or {}
+			local known = #caught > 0 or #pending > 0
 			local card = UiKit.make("Frame", {
 				LayoutOrder = i,
 				Size = UDim2.fromOffset(CARD_WIDTH, CARD_HEIGHT),
@@ -306,6 +335,9 @@ function FreakpediaController.start()
 				Parent = cards,
 			})
 			UiKit.corner(card, 10)
+			if #pending > 0 then
+				UiKit.make("UIStroke", { Color = Color3.fromRGB(255, 205, 60), Thickness = 2.5, Parent = card })
+			end
 			viewport(card, species, known)
 			UiKit.make("TextLabel", {
 				Position = UDim2.fromOffset(8, 154),
@@ -331,25 +363,49 @@ function FreakpediaController.start()
 				Parent = pips,
 			})
 			for order, rarity in Rarities.list do
-				pip(pips, order, rarity, table.find(caught, rarity.id) ~= nil)
+				pip(pips, order, rarity, table.find(caught, rarity.id) ~= nil, table.find(pending, rarity.id) ~= nil)
 			end
-			UiKit.make("TextLabel", {
-				Position = UDim2.fromOffset(8, 210),
-				Size = UDim2.new(1, -16, 0, 30),
-				BackgroundTransparency = 1,
-				Font = Enum.Font.Gotham,
-				TextSize = 13,
-				TextWrapped = true,
-				TextColor3 = UiKit.colors.muted,
-				Text = if known then ("%d / %d rarities caught"):format(#caught, #Rarities.list) else ("Lives in Ring %d"):format(page),
-				Parent = card,
-			})
+			if #pending > 0 then
+				local reward = 0
+				for _, rarity in pending do
+					reward += math.floor(Freakpedia.discoveryReward * Formulas.sellPrice(species.tier, rarity))
+				end
+				local claim = UiKit.make("TextButton", {
+					Position = UDim2.fromOffset(10, 208),
+					Size = UDim2.new(1, -20, 0, 34),
+					BackgroundColor3 = Color3.fromRGB(255, 195, 40),
+					Font = Enum.Font.GothamBlack,
+					TextSize = 16,
+					TextColor3 = Color3.fromRGB(50, 35, 0),
+					Text = ("CLAIM +%s"):format(Format.money(reward)),
+					Parent = card,
+				})
+				UiKit.corner(claim, 8)
+				claim.Activated:Connect(function()
+					Sfx.play("click")
+					claim.Active = false
+					claim.Text = "..."
+					Remotes.ClaimFreakpedia:FireServer(species.name)
+				end)
+			else
+				UiKit.make("TextLabel", {
+					Position = UDim2.fromOffset(8, 210),
+					Size = UDim2.new(1, -16, 0, 30),
+					BackgroundTransparency = 1,
+					Font = Enum.Font.Gotham,
+					TextSize = 13,
+					TextWrapped = true,
+					TextColor3 = UiKit.colors.muted,
+					Text = if known then ("%d / %d rarities collected"):format(#caught, #Rarities.list) else ("Lives in Ring %d"):format(page),
+					Parent = card,
+				})
+			end
 		end
 
 		local pagePercent = math.round(Freakpedia.pageBonus * 100)
 		pageLine.Text = if table.find(pages, page)
 			then ("Ring %d page complete: +%d%% farm income"):format(page, pagePercent)
-			else ("Catch all %d at %s–%s to complete this page: +%d%% farm income"):format(
+			else ("Collect all %d at %s–%s to complete this page: +%d%% farm income"):format(
 				#FreakConfig.species[page],
 				Freakpedia.pageRarities[1],
 				Freakpedia.pageRarities[#Freakpedia.pageRarities],
@@ -388,10 +444,6 @@ function FreakpediaController.start()
 			page = math.clamp((player:GetAttribute("HighestTier") :: number?) or 1, 1, tierCount)
 		end
 		gui.Enabled = open
-		if open then
-			seen = entryCount()
-			updateBadge()
-		end
 		render()
 	end
 
@@ -449,7 +501,7 @@ function FreakpediaController.start()
 		setOpen(not gui.Enabled)
 	end)
 
-	-- Red badge on the button's top-right corner: new entries not seen yet.
+	-- Red badge on the button's top-right corner: new entries waiting to be claimed.
 	local badge = UiKit.make("TextLabel", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(1, -4, 0, 4),
@@ -466,24 +518,19 @@ function FreakpediaController.start()
 	UiKit.corner(badge, 14)
 	UiKit.make("UIStroke", { Color = Color3.new(1, 1, 1), Thickness = 2, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = badge })
 	local badgeScale = UiKit.make("UIScale", { Parent = badge })
-	local lastUnseen = 0
-	updateBadge = function()
-		local unseen = if gui.Enabled then 0 else math.max(entryCount() - seen, 0)
-		badge.Visible = unseen > 0
-		badge.Text = if unseen > 99 then "99+" else tostring(unseen)
-		if unseen > lastUnseen then
+	local lastWaiting = 0
+	local function updateBadge()
+		local waiting = pendingCount(nil)
+		badge.Visible = waiting > 0
+		badge.Text = if waiting > 99 then "99+" else tostring(waiting)
+		if waiting > lastWaiting then
 			badgeScale.Scale = 1.5
 			TweenService:Create(badgeScale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
 		end
-		lastUnseen = unseen
+		lastWaiting = waiting
 	end
-	player:GetAttributeChangedSignal("Freakpedia"):Connect(function()
-		if gui.Enabled or not loaded then
-			seen = entryCount() -- caught while looking at the book, or just loaded
-			loaded = true
-		end
-		updateBadge()
-	end)
+	player:GetAttributeChangedSignal("FreakpediaPending"):Connect(updateBadge)
+	updateBadge()
 
 	UserInputService.InputBegan:Connect(function(input, processed)
 		if not processed and input.KeyCode == Enum.KeyCode.P then
@@ -492,6 +539,7 @@ function FreakpediaController.start()
 	end)
 
 	player:GetAttributeChangedSignal("Freakpedia"):Connect(render)
+	player:GetAttributeChangedSignal("FreakpediaPending"):Connect(render)
 	player:GetAttributeChangedSignal("HighestTier"):Connect(render)
 
 	hud.Parent = player:WaitForChild("PlayerGui")

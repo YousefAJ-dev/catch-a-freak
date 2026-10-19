@@ -50,6 +50,7 @@ local Gates: { Gate } = {
 			{ species = { "Nightmare", "Tri-Eye", "Voidmoth" }, rarity = "Legendary", count = 2 },
 		},
 	},
+
 }
 
 return Gates

@@ -26,6 +26,7 @@ local EVENTS = {
 	"NetImpact", -- server -> all clients: (position: Vector3, caught: number) net visual
 	"Popup", -- server -> client: (title: string, body: string) message the player dismisses
 	"FloatText", -- server -> client: (text: string, color: Color3) rises and fades over the player's head
+	"ClaimFreakpedia", -- client -> server: (species: string) claim that species' new Freakpedia entries
 }
 
 local folder: Folder

@@ -242,7 +242,7 @@ end
 
 -- Price of one item, scaled by the player's highest unlocked tier.
 function Formulas.itemPrice(itemId: string, highestTier: number): number
-	return (Items :: any)[itemId].basePrice * 15 ^ (highestTier - 1)
+	return (Items :: any)[itemId].basePrice * 25 ^ (highestTier - 1)
 end
 
 -- Cost of buying the next level of an upgrade, rounded to the nearest dollar.

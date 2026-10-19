@@ -1,6 +1,6 @@
 --!strict
 -- Consumable items from DESIGN.md section 7.
--- Price = basePrice × 15 ^ (highestTier − 1) (see Formulas.itemPrice).
+-- Price = basePrice × 35 ^ (highestTier − 1) (see Formulas.itemPrice).
 -- The Golden Bear Trap is sold for Robux only (Config/Products), so it has no
 -- price and isn't in `order` (the items sold for money).
 
@@ -23,7 +23,7 @@ local Items = {
 	netLauncher = {
 		id = "netLauncher",
 		name = "Net Launcher",
-		basePrice = 100,
+		basePrice = 350,
 		key = Enum.KeyCode.Q,
 		description = "Catches up to 3 Common, Uncommon or Rare freaks where it lands",
 		range = 40, -- studs from the player to the impact point
@@ -35,7 +35,7 @@ local Items = {
 	bearTrap = {
 		id = "bearTrap",
 		name = "Bear Trap",
-		basePrice = 50,
+		basePrice = 450,
 		key = Enum.KeyCode.R,
 		description = "Pins the first freak to step on it for 30 s; a 0.5 s grab for you only. Not Rainbow or Radioactive",
 		triggerRadius = 3, -- a freak this close to the trap's center steps on it

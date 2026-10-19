@@ -135,15 +135,6 @@ function ShopController.start()
 		UiKit.row(panel.list, #Items.order + 1, ("%s  ·  %d  [%s]"):format(golden.name, goldenHeld, golden.key.Name), golden.description, Purchases.productPrice("goldenTrap"), "Buy", ROBUX, true, function()
 			Purchases.promptProduct("goldenTrap")
 		end)
-		local pass = Products.passes.money2x
-		local ok, owned = pcall(HttpService.JSONDecode, HttpService, (player:GetAttribute("OwnedPasses") :: string?) or "[]")
-		if ok and table.find(owned, pass.key) then
-			UiKit.row(panel.list, #Items.order + 2, pass.name, pass.description, "Owned", "Owned", ROBUX, false, function() end)
-		else
-			UiKit.row(panel.list, #Items.order + 2, pass.name, pass.description, Purchases.priceText(pass.passId, Enum.InfoType.GamePass), "Buy", ROBUX, true, function()
-				Purchases.promptPass(pass)
-			end)
-		end
 	end
 
 	local function renderSkins()
@@ -213,15 +204,12 @@ function ShopController.start()
 	-- Look up Robux prices once in the background so rendering never waits on them.
 	task.spawn(function()
 		Purchases.productPrice("goldenTrap")
-		for _, pass in Products.passes do
-			Purchases.priceText(pass.passId, Enum.InfoType.GamePass)
-		end
 		for _, skin in Products.skinSets do
 			Purchases.priceText(skin.passId, Enum.InfoType.GamePass)
 		end
 	end)
 
-	local watched = { "Money", "HighestTier", "OwnedSkins", "EquippedSkin", "OwnedPasses", "Item_goldenTrap" }
+	local watched = { "Money", "HighestTier", "OwnedSkins", "EquippedSkin", "Item_goldenTrap" }
 	for _, id in UPGRADE_ORDER do
 		table.insert(watched, "Upgrade_" .. id)
 	end

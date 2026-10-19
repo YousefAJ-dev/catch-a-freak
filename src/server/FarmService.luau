@@ -25,6 +25,7 @@ local World = require(Shared.Config.World)
 local Rarities = require(Shared.Config.Rarities)
 local DataService = require(script.Parent.DataService)
 local CarryService = require(script.Parent.CarryService)
+local FreakpediaService = require(script.Parent.FreakpediaService)
 local FreakModels = require(Shared.FreakModels)
 
 local INCOME_TICK = 1
@@ -245,6 +246,7 @@ local function placeSlot(player: Player, plot: Plot, slot: number): ("placed" | 
 	local record: FarmFreak = { species = freak.species, tier = freak.tier, rarity = freak.rarity, effects = freak.effects, pad = pad }
 	table.insert(farm, record)
 	showFreak(plot, record)
+	FreakpediaService.discover(player, record)
 	return "placed", record
 end
 

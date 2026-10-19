@@ -31,7 +31,6 @@ local Rarities = require(Shared.Config.Rarities)
 local FreakConfig = require(Shared.Config.Freaks)
 local CarryService = require(script.Parent.CarryService)
 local DataService = require(script.Parent.DataService)
-local FreakpediaService = require(script.Parent.FreakpediaService)
 local FreakModels = require(Shared.FreakModels)
 local Items = require(Shared.Config.Items)
 
@@ -200,7 +199,6 @@ local function tryGrab(player: Player, freak: Freak)
 		effects = {},
 	}
 	CarryService.add(player, caught)
-	FreakpediaService.record(player, caught)
 	despawn(freak, "caught")
 end
 
@@ -428,7 +426,6 @@ function FreakService.capture(player: Player, id: string): boolean
 		effects = {},
 	}
 	CarryService.add(player, caught)
-	FreakpediaService.record(player, caught)
 	despawn(freak, "caught")
 	return true
 end

@@ -175,9 +175,9 @@ The two top rarities are made to be spotted from across a ring: a light, a strea
 
 ### Freakpedia
 
-A collection book with an entry for every species at every rarity (15 species × 7 rarities = 105 entries). An entry is discovered the first time the player catches that species at that rarity, by grab, net, trap or wheel prize. Freaks already on a player's farm when the Freakpedia launched count as discovered. Rewards (all in `Config/Freakpedia`):
+A collection book with an entry for every species at every rarity (15 species × 7 rarities = 105 entries). Catching a freak isn't enough: a species at a rarity becomes a new entry the first time the player puts it in an incubator. New entries wait in the book until the player claims them by clicking CLAIM on the species' card; only claimed entries pay out and count toward pages. Freaks already on a player's farm when the Freakpedia launched were added as claimed, once. Rewards (all in `Config/Freakpedia`):
 
-- Each new entry pays 1× that freak's sell price.
+- Claiming a new entry pays 1× that freak's sell price.
 - A ring's page is complete once every species of that ring has been caught at Common, Uncommon, Rare, Epic and Legendary. Each complete page gives a permanent +5% farm income.
 - Each Rainbow or Radioactive entry gives a permanent +1% farm income.
 
@@ -286,6 +286,7 @@ Freaks in incubators:
 - A freak's name, rarity, and income label only appears when a player is within 20 studs.
 - Each placed freak adds its income per second to the farm's uncollected pool.
 - Standing on the collection pad moves the whole pool into the wallet, and "+$amount" rises over the player's head. Each player sees only their own pad in green (plain, no glow) with its COLLECT label; every other pad is grey.
+- A 2x Money pad sits on the other side of the collection pad. Each player sees only their own lit up (glowing gold, "2x MONEY" label, "2x MONEY ✓" once owned); every other one is grey. Stepping onto it opens the 2x Money Game Pass purchase prompt, once per visit to the pad. It's the only place the pass is sold.
 - From the farm panel a player can pick a placed freak back up into a free carry slot (to sell it or turn it in at a gate).
 - Other players cannot interact with your farm.
 
@@ -368,7 +369,7 @@ A requirement can name several species (`species = { "Bloatworm", "Hexwing", "Sl
 
 ## 9. Daily wheel
 
-Located in the shop. One free spin per UTC day. The player needs one free carry slot to spin. The prize freak goes into a carry slot, and they place or sell it like any other.
+Located in the shop. One free spin per UTC day. The player needs one free carry slot to spin. The prize freak goes into a carry slot when the wheel stops (7 seconds), and they place or sell it like any other. Until then the prize is saved, so leaving mid-spin or filling the carry bar while it turns never loses it: it arrives as soon as there's a free slot.
 
 | Odds | Prize |
 |------|-------|
@@ -392,7 +393,7 @@ Build this last, after the loop is fun. Product and Game Pass IDs live in `Confi
 
 | Product | Type | Behavior |
 |---------|------|----------|
-| 2x Money | Game Pass | Permanently doubles farm income and sell payouts (never offline earnings). Shown as a "2x MONEY · ACTIVE" badge under the money display. |
+| 2x Money | Game Pass | Permanently doubles farm income and sell payouts (never offline earnings). Sold from the gold 2x Money pad beside each player's collection pad (section 6), not the shop. Shown as a "2x MONEY · ACTIVE" badge under the money display. |
 | Golden Bear Trap | Developer Product | One Golden Bear Trap (section 7, Items). |
 | Extra Wheel Spin | Developer Product | Grants one extra spin, usable immediately. |
 | Upgrade Skins | Game Pass per skin set | Cosmetic only, no gameplay effect. The equipped set recolors the character as a suit and boots (hiding the avatar's shirt and pants), with goggles and, for some sets, a glow: Lab Coat (white, goggles), Toxic (glowing green), Gold (gilded). |
@@ -419,7 +420,7 @@ Rules:
 | Wheel | Opened by the Spin prompt at the wheel. A strip of prize segments sized by their odds, with a pointer that sweeps and lands on the result while the wheel in the shop spins; the odds table; spin button; time until the next free spin and any extra spins |
 | Panel style | Every menu panel (shop, sell, farm, gate, wheel) is 440×540, docked right, with a header bar and border in its own accent color (shop blue, sell gold, farm green, gate purple, wheel pink; `UiKit.accents`) and a drop shadow. |
 | Popups | Offline earnings on join, revive offer on death, tier unlocked, Freakpedia page complete |
-| Freakpedia | Opened by the book button on the left of the HUD (which shows a "P" keycap on keyboards), or P. The panel can be dragged by its title bar and stays where it's put. A new entry floats "📖 New entry +$reward" over the player's head and adds to a red count badge on the button's top-right corner, cleared when the book is opened. A tab per ring. Each species card shows its model (a black silhouette until caught), its name ("???" until caught) and a pip per rarity, lit once caught. The footer shows the page reward, the total bonus and pages complete. |
+| Freakpedia | Opened by the book button on the left of the HUD (which shows a "P" keycap on keyboards), or P. The panel can be dragged by its title bar and stays where it's put. A new entry (on putting a freak in an incubator) floats "📖 New Freakpedia entry!" over the player's head. The red badge on the button's top-right corner counts entries waiting to be claimed, and each ring tab shows its own count. A tab per ring. Each species card shows its model (a black silhouette until collected), its name ("???" until then) and a pip per rarity, lit once claimed and half-lit while waiting. A card with waiting entries gets a gold border and a CLAIM +$reward button, which claims all of them and floats the reward over the player's head. The footer shows the page reward, the total bonus and pages complete. |
 
 ---
 
@@ -481,7 +482,7 @@ src/
     ShopService.luau     upgrades, items, selling
     ItemService.luau     net launcher, bear trap, golden bear trap
     GateService.luau     turn-ins, tier unlocks
-    FreakpediaService.luau  records new entries, pays discovery rewards
+    FreakpediaService.luau  new entries on incubating, claims and their rewards
     WheelService.luau
     MonetizationService.luau
     DebugService.luau    Studio-only commands
@@ -490,6 +491,7 @@ src/
     DoorController.luau  per-player door state
     BiomeController.luau per-zone lighting and the day/night cycle
     FreakpediaController.luau  the Freakpedia button and panel
+    MoneyPadController.luau    styles the 2x Money pads, prompts the pass on your own
     FeedbackController.luau  grab/money sounds and sparkles, radiation geiger loop
     UiScaleController.luau   shrinks every ScreenGui on small (phone) screens
     Sfx.luau             plays one-shot sound effects
@@ -523,12 +525,14 @@ One record per player, saved with **ProfileStore** (decided in Milestone 6) for 
   },
   uncollected = 0,
   lastSeen = 0,                       -- os.time() at last save
-  wheel = { lastFreeSpinDay = 0, extraSpins = 0 },
+  wheel = { lastFreeSpinDay = 0, extraSpins = 0 },  -- plus pendingPrize while a spin's prize is on its way
   ownedPasses = {},                   -- gameplay Game Pass keys ("money2x"); re-checked on join
   ownedSkins = {},                    -- skin set keys; Game Passes are re-checked on join
   equippedSkin = "",                  -- "" for none
   processedReceipts = {},             -- last 50 purchase IDs
-  freakpedia = {},                    -- species -> rarities caught, e.g. { Glowbug = { "Common", "Rare" } }
+  freakpedia = {},                    -- species -> rarities claimed, e.g. { Glowbug = { "Common", "Rare" } }
+  freakpediaPending = {},             -- incubated but not claimed yet, same shape
+  freakpediaBackfilled = false,       -- old farm freaks were added as claimed (once)
 }
 ```
 

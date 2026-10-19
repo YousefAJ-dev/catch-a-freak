@@ -9,7 +9,7 @@
 --
 -- Fields the client needs to display are mirrored onto the Player as
 -- attributes ("Money", "HighestTier", "Upgrade_<id>", "Item_<id>", "GateProgress",
--- "WheelLastFreeDay", "WheelExtraSpins", "Freakpedia", "OwnedPasses"). The record stays the
+-- "WheelLastFreeDay", "WheelExtraSpins", "Freakpedia", "FreakpediaPending", "OwnedPasses"). The record stays the
 -- source of truth; never read those attributes back on the server as values.
 -- (Connecting to their change signals to learn that something changed is fine.)
 --
@@ -43,12 +43,15 @@ export type Data = {
 	farm: { any },
 	uncollected: number,
 	lastSeen: number, -- os.time() at the last save
-	wheel: { lastFreeSpinDay: number, extraSpins: number },
+	-- pendingPrize: a spin's freak, saved until the wheel stops and a carry slot is free
+	wheel: { lastFreeSpinDay: number, extraSpins: number, pendingPrize: { species: string, tier: number, rarity: string, readyAt: number }? },
 	ownedPasses: { string }, -- gameplay Game Pass keys (Config/Products.passes)
 	ownedSkins: { string }, -- skin set keys (Config/Products)
 	equippedSkin: string, -- "" for none
 	processedReceipts: { string }, -- recent Developer Product PurchaseIds
-	freakpedia: { [string]: { string } }, -- species name -> rarity ids caught (Config/Freakpedia)
+	freakpedia: { [string]: { string } }, -- species name -> rarity ids claimed (Config/Freakpedia)
+	freakpediaPending: { [string]: { string } }, -- incubated but not claimed yet
+	freakpediaBackfilled: boolean, -- farm freaks from before the Freakpedia were added once
 }
 
 local function newData(): Data
@@ -74,6 +77,8 @@ local function newData(): Data
 		equippedSkin = "",
 		processedReceipts = {},
 		freakpedia = {},
+		freakpediaPending = {},
+		freakpediaBackfilled = false,
 	}
 end
 
@@ -133,6 +138,7 @@ local function replicate(player: Player, data: Data)
 	player:SetAttribute("OwnedSkins", HttpService:JSONEncode(data.ownedSkins))
 	player:SetAttribute("EquippedSkin", data.equippedSkin)
 	player:SetAttribute("Freakpedia", HttpService:JSONEncode(data.freakpedia))
+	player:SetAttribute("FreakpediaPending", HttpService:JSONEncode(data.freakpediaPending))
 end
 
 -- Re-sends the mirrored attributes after a service changed the record directly.
@@ -216,28 +222,49 @@ function DataService.setHighestTier(player: Player, tier: number)
 	replicate(player, data)
 end
 
--- Marks a species at a rarity as caught in the player's Freakpedia. Returns
--- true if it wasn't there before.
-local function discover(data: Data, species: string, rarity: string): boolean
-	local caught = data.freakpedia[species]
-	if not caught then
-		caught = {}
-		data.freakpedia[species] = caught
+-- Adds a rarity to a species' list in a Freakpedia table (claimed or
+-- pending). Returns true if it wasn't there before.
+local function addEntry(book: { [string]: { string } }, species: string, rarity: string): boolean
+	local list = book[species]
+	if not list then
+		list = {}
+		book[species] = list
 	end
-	if table.find(caught, rarity) then
+	if table.find(list, rarity) then
 		return false
 	end
-	table.insert(caught, rarity)
+	table.insert(list, rarity)
 	return true
 end
 
-function DataService.discover(player: Player, species: string, rarity: string): boolean
+local function hasEntry(book: { [string]: { string } }, species: string, rarity: string): boolean
+	return book[species] ~= nil and table.find(book[species], rarity) ~= nil
+end
+
+-- A species at a rarity went into an incubator: if it's new to the
+-- Freakpedia, it waits there to be claimed. Returns true if it's new.
+function DataService.addPendingEntry(player: Player, species: string, rarity: string): boolean
 	local data = dataOf(player)
-	local new = discover(data, species, rarity)
-	if new then
-		replicate(player, data)
+	if hasEntry(data.freakpedia, species, rarity) or not addEntry(data.freakpediaPending, species, rarity) then
+		return false
 	end
-	return new
+	replicate(player, data)
+	return true
+end
+
+-- Claims every pending entry of a species. Returns the rarities claimed.
+function DataService.claimEntries(player: Player, species: string): { string }
+	local data = dataOf(player)
+	local pending = data.freakpediaPending[species]
+	data.freakpediaPending[species] = nil
+	local claimed = {}
+	for _, rarity in pending or {} do
+		if addEntry(data.freakpedia, species, rarity) then
+			table.insert(claimed, rarity)
+		end
+	end
+	replicate(player, data)
+	return claimed
 end
 
 -- Counts one more freak turned in for a requirement of the player's current gate.
@@ -340,9 +367,13 @@ local function onPlayerAdded(player: Player)
 	profile.Data.boost2xSecondsLeft = nil -- the timed 2x Money boost became a Game Pass
 	for _, record in profile.Data.farm do
 		record.species = FreakConfig.renamed[record.species] or record.species
-		-- Freaks caught before the Freakpedia existed count as discovered.
-		discover(profile.Data, record.species, record.rarity)
+		-- Freaks placed before the Freakpedia existed count as claimed (once:
+		-- after that, new entries wait in freakpediaPending to be claimed).
+		if not profile.Data.freakpediaBackfilled then
+			addEntry(profile.Data.freakpedia, record.species, record.rarity)
+		end
 	end
+	profile.Data.freakpediaBackfilled = true
 	-- Gate progress used to be done/not-done flags; it's now a count per
 	-- requirement. A done flag becomes that requirement's full count.
 	local gate = Gates[profile.Data.highestTier]
