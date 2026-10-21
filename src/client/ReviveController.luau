@@ -86,9 +86,16 @@ function ReviveController.start()
 			BackgroundTransparency = 1,
 			Parent = buyHolder,
 		})
-		UiKit.button(buySlot, ("Respawn with freaks  ·  %s"):format(Purchases.productPrice("revive")), Color3.fromRGB(0, 160, 110), true, function()
-			Purchases.promptProduct("revive")
-		end)
+		if player:GetAttribute("FreeAccess") == true then
+			-- Whitelisted (Config/FreeAccess): the same offer, no purchase.
+			UiKit.button(buySlot, "Respawn with freaks  ·  FREE", Color3.fromRGB(0, 160, 110), true, function()
+				Remotes.FreeRevive:FireServer()
+			end)
+		else
+			UiKit.button(buySlot, ("Respawn with freaks  ·  %s"):format(Purchases.productPrice("revive")), Color3.fromRGB(0, 160, 110), true, function()
+				Purchases.promptProduct("revive")
+			end)
+		end
 		UiKit.button(dismissSlot, "No thanks", UiKit.colors.disabled, true, hide)
 		gui.Enabled = true
 	end)

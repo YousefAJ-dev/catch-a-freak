@@ -14,6 +14,10 @@
 --                  items": hidden for players whose policy restricts them
 --   Revive         offered for a few seconds after dying with freaks; restores
 --                  the carry bar and respawns the player at their farm
+--   Free access    whitelisted players (Config/FreeAccess, by User ID or a
+--                  VIP pass) own every pass and skin, revive for free
+--                  (Remotes.FreeRevive) and buy Golden Bear Traps with money;
+--                  checked on every join, never saved. Not the wheel.
 --   Skin sets      Game Passes; ownership is saved and one can be equipped
 --                  (the looks arrive with the art in Milestone 10)
 --
@@ -32,6 +36,7 @@ local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage.Shared
 local Remotes = require(Shared.Remotes)
 local Products = require(Shared.Config.Products)
+local FreeAccess = require(Shared.Config.FreeAccess)
 local DataService = require(script.Parent.DataService)
 local CarryService = require(script.Parent.CarryService)
 
@@ -201,11 +206,30 @@ local function onEquipSkin(player: Player, skinKey: any)
 	if not data or typeof(skinKey) ~= "string" then
 		return
 	end
-	if skinKey ~= "" and not table.find(data.ownedSkins, skinKey) then
+	if skinKey ~= "" and not table.find(DataService.skinsOf(player), skinKey) then
 		return
 	end
 	data.equippedSkin = skinKey
 	DataService.refresh(player)
+end
+
+-- Free access ---------------------------------------------------------------
+
+local function checkFreeAccess(player: Player)
+	local listed = table.find(FreeAccess.userIds, player.UserId) ~= nil
+	DataService.setFreeAccess(player, listed or ownsPass(player, FreeAccess.passId))
+end
+
+-- A free revive for a player with free access, instead of the purchase.
+local function onFreeRevive(player: Player)
+	if DataService.hasFreeAccess(player) and heldForRevive[player] then
+		GRANTS.revive(player)
+	end
+end
+
+function MonetizationService.setFreeAccess(player: Player, on: boolean)
+	assert(RunService:IsStudio(), "Studio only")
+	DataService.setFreeAccess(player, on)
 end
 
 -- Policy --------------------------------------------------------------------
@@ -228,6 +252,7 @@ end
 function MonetizationService.start()
 	MarketplaceService.ProcessReceipt = processReceipt
 	Remotes.EquipSkin.OnServerEvent:Connect(onEquipSkin)
+	Remotes.FreeRevive.OnServerEvent:Connect(onFreeRevive)
 
 	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, passId, purchased)
 		if not purchased then
@@ -241,6 +266,9 @@ function MonetizationService.start()
 		elseif pass then
 			grantPass(player, pass.key)
 			notify(player, ("%s unlocked — %s"):format(pass.name, pass.description:lower()))
+		elseif passId == FreeAccess.passId and passId > 0 then
+			DataService.setFreeAccess(player, true)
+			notify(player, "VIP unlocked — every pass is yours, and revives are free")
 		end
 	end)
 
@@ -254,6 +282,7 @@ function MonetizationService.start()
 		task.spawn(function()
 			if DataService.waitFor(player) then
 				checkOwnedPasses(player)
+				checkFreeAccess(player)
 			end
 		end)
 	end

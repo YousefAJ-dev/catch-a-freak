@@ -50,7 +50,7 @@ local function sellSlot(player: Player, slot: number): number?
 		return nil
 	end
 	local data = DataService.get(player)
-	local multiplier = if data then Formulas.moneyMultiplier(data.ownedPasses) else 1
+	local multiplier = if data then Formulas.moneyMultiplier(DataService.passesOf(player)) else 1
 	local price = Formulas.sellPrice(freak.tier, freak.rarity, freak.effects) * multiplier
 	DataService.addMoney(player, price)
 	return price
@@ -138,7 +138,10 @@ end
 
 local function onBuyItem(player: Player, itemId: any)
 	local data = DataService.get(player)
-	local isItem = typeof(itemId) == "string" and table.find(Items.order, itemId) ~= nil
+	-- Golden Bear Traps are Robux-only, except for players with free access,
+	-- who can buy them with money (Formulas.itemPrice prices them).
+	local isItem = typeof(itemId) == "string"
+		and (table.find(Items.order, itemId) ~= nil or (itemId == "goldenTrap" and DataService.hasFreeAccess(player)))
 	if not (data and isItem) then
 		return
 	end

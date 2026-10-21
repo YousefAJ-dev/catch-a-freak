@@ -399,6 +399,15 @@ Build this last, after the loop is fun. Product and Game Pass IDs live in `Confi
 | Upgrade Skins | Game Pass per skin set | Cosmetic only, no gameplay effect. The equipped set recolors the character as a suit and boots (hiding the avatar's shirt and pants), with goggles and, for some sets, a glow: Lab Coat (white, goggles), Toxic (glowing green), Gold (gilded). |
 | Respawn with Caught Freaks | Developer Product | Offered for 10 seconds after dying while carrying at least one freak of any rarity. On purchase the player respawns at their farm still carrying everything. |
 
+**Free access (whitelist).** Players listed by User ID in `Config/FreeAccess.luau` (or owning its optional VIP Game Pass, `passId`, 0 for none) get, for as long as they're on the list:
+
+- every Game Pass (2x Money and all skins) for free;
+- the revive offer as usual, but taking it is free;
+- Golden Bear Traps for in-game money, at 3× the Bear Trap's money price (up to 5 held), as well as for Robux;
+- nothing on the daily wheel: no free or extra spins.
+
+It's checked on every join and never saved, so removing someone from the list takes it away the next time they join. In Studio, `/freeaccess on|off` toggles it for the session.
+
 Rules:
 
 - Handle all Developer Products in a single `MarketplaceService.ProcessReceipt` callback. Grant the item, save, then return `PurchaseGranted`. Record processed purchase IDs so a receipt is never granted twice.
@@ -465,6 +474,7 @@ src/
       Gates.luau         section 8 table
       Wheel.luau         odds
       Products.luau      product and game pass IDs
+      FreeAccess.luau    whitelisted User IDs and their perks
       Biomes.luau        each zone's ground, walls and lighting
       DayNight.luau      day/night cycle lengths, sun times and the night look
       Freakpedia.luau    collection rewards

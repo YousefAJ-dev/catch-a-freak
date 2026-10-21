@@ -23,6 +23,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Upgrades = require(ReplicatedStorage.Shared.Config.Upgrades)
+local Products = require(ReplicatedStorage.Shared.Config.Products)
 local Tiers = require(ReplicatedStorage.Shared.Config.Tiers)
 local FreakConfig = require(ReplicatedStorage.Shared.Config.Freaks)
 local Gates = require(ReplicatedStorage.Shared.Config.Gates)
@@ -92,6 +93,11 @@ local previousLastSeen: { [Player]: number } = {}
 
 local DataService = {}
 
+-- Players with free access this session (Config/FreeAccess; set by
+-- MonetizationService on join). Never saved: they own every pass and skin
+-- only while they have it.
+local freeAccess: { [Player]: boolean } = {}
+
 function DataService.get(player: Player): Data?
 	local profile = profiles[player]
 	return if profile then profile.Data :: Data else nil
@@ -122,6 +128,36 @@ local function addPlayTime(player: Player, data: Data): number
 	return data.playSeconds
 end
 
+-- Gameplay passes the player can use: bought ones, or all of them with free access.
+function DataService.passesOf(player: Player): { string }
+	local data = DataService.get(player)
+	if freeAccess[player] then
+		local all = {}
+		for key in Products.passes do
+			table.insert(all, key)
+		end
+		return all
+	end
+	return if data then data.ownedPasses else {}
+end
+
+-- Skin sets the player can equip: bought ones, or all of them with free access.
+function DataService.skinsOf(player: Player): { string }
+	local data = DataService.get(player)
+	if freeAccess[player] then
+		local all = {}
+		for _, skin in Products.skinSets do
+			table.insert(all, skin.key)
+		end
+		return all
+	end
+	return if data then data.ownedSkins else {}
+end
+
+function DataService.hasFreeAccess(player: Player): boolean
+	return freeAccess[player] == true
+end
+
 local function replicate(player: Player, data: Data)
 	player:SetAttribute("Money", data.money)
 	player:SetAttribute("HighestTier", data.highestTier)
@@ -134,11 +170,20 @@ local function replicate(player: Player, data: Data)
 	player:SetAttribute("GateProgress", HttpService:JSONEncode(data.gateProgress))
 	player:SetAttribute("WheelLastFreeDay", data.wheel.lastFreeSpinDay)
 	player:SetAttribute("WheelExtraSpins", data.wheel.extraSpins)
-	player:SetAttribute("OwnedPasses", HttpService:JSONEncode(data.ownedPasses))
-	player:SetAttribute("OwnedSkins", HttpService:JSONEncode(data.ownedSkins))
+	player:SetAttribute("OwnedPasses", HttpService:JSONEncode(DataService.passesOf(player)))
+	player:SetAttribute("OwnedSkins", HttpService:JSONEncode(DataService.skinsOf(player)))
+	player:SetAttribute("FreeAccess", freeAccess[player] == true)
 	player:SetAttribute("EquippedSkin", data.equippedSkin)
 	player:SetAttribute("Freakpedia", HttpService:JSONEncode(data.freakpedia))
 	player:SetAttribute("FreakpediaPending", HttpService:JSONEncode(data.freakpediaPending))
+end
+
+function DataService.setFreeAccess(player: Player, on: boolean)
+	freeAccess[player] = if on then true else nil
+	local data = DataService.get(player)
+	if data then
+		replicate(player, data)
+	end
 end
 
 -- Re-sends the mirrored attributes after a service changed the record directly.
@@ -384,6 +429,7 @@ local function onPlayerAdded(player: Player)
 	end
 	profile.OnSessionEnd:Connect(function()
 		profiles[player] = nil
+		freeAccess[player] = nil
 		previousLastSeen[player] = nil
 		playClock[player] = nil
 		if player.Parent == Players then

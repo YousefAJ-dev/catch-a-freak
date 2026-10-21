@@ -9,6 +9,7 @@ local Upgrades = require(Config:WaitForChild("Upgrades"))
 local Rarities = require(Config:WaitForChild("Rarities"))
 local Economy = require(Config:WaitForChild("Economy"))
 local Items = require(Config:WaitForChild("Items"))
+local FreeAccess = require(Config:WaitForChild("FreeAccess"))
 local PlayerConfig = require(Config:WaitForChild("Player"))
 local Dash = require(Config:WaitForChild("Dash"))
 local Wheel = require(Config:WaitForChild("Wheel"))
@@ -241,7 +242,12 @@ function Formulas.offlineEarnings(incomePerSecond: number, secondsAway: number, 
 end
 
 -- Price of one item, scaled by the player's highest unlocked tier.
+-- The Golden Bear Trap (Robux) only has a money price for players with free
+-- access: a multiple of the Bear Trap's (Config/FreeAccess).
 function Formulas.itemPrice(itemId: string, highestTier: number): number
+	if itemId == "goldenTrap" then
+		return FreeAccess.goldenTrapPriceMultiplier * Formulas.itemPrice("bearTrap", highestTier)
+	end
 	return (Items :: any)[itemId].basePrice * 25 ^ (highestTier - 1)
 end
 

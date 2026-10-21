@@ -132,9 +132,19 @@ function ShopController.start()
 		-- Robux extras, sold alongside the items.
 		local golden = Items.goldenTrap
 		local goldenHeld = (player:GetAttribute("Item_goldenTrap") :: number?) or 0
-		UiKit.row(panel.list, #Items.order + 1, ("%s  ·  %d  [%s]"):format(golden.name, goldenHeld, golden.key.Name), golden.description, Purchases.productPrice("goldenTrap"), "Buy", ROBUX, true, function()
-			Purchases.promptProduct("goldenTrap")
-		end)
+		if player:GetAttribute("FreeAccess") == true then
+			-- Free access (Config/FreeAccess): bought with money instead of Robux.
+			local price = Formulas.itemPrice("goldenTrap", tier)
+			local full = goldenHeld >= Items.maxHeld
+			local title = ("%s  ·  %d/%d  [%s]"):format(golden.name, goldenHeld, Items.maxHeld, golden.key.Name)
+			UiKit.row(panel.list, #Items.order + 1, title, golden.description, Format.money(price), if full then "Full" else "Buy", UiKit.colors.go, not full and money() >= price, function()
+				Remotes.BuyItem:FireServer("goldenTrap")
+			end)
+		else
+			UiKit.row(panel.list, #Items.order + 1, ("%s  ·  %d  [%s]"):format(golden.name, goldenHeld, golden.key.Name), golden.description, Purchases.productPrice("goldenTrap"), "Buy", ROBUX, true, function()
+				Purchases.promptProduct("goldenTrap")
+			end)
+		end
 	end
 
 	local function renderSkins()
@@ -209,7 +219,7 @@ function ShopController.start()
 		end
 	end)
 
-	local watched = { "Money", "HighestTier", "OwnedSkins", "EquippedSkin", "Item_goldenTrap" }
+	local watched = { "Money", "HighestTier", "OwnedSkins", "EquippedSkin", "Item_goldenTrap", "FreeAccess" }
 	for _, id in UPGRADE_ORDER do
 		table.insert(watched, "Upgrade_" .. id)
 	end

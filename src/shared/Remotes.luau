@@ -22,6 +22,7 @@ local EVENTS = {
 	"WheelResult", -- server -> client: (prizeIndex: number, tier: number, rarity: string, species: string) where the spin landed
 	"ReviveOffer", -- server -> client: (freakCount: number, offerEndsAt: number) died carrying freaks
 	"ReviveDone", -- server -> client: () the revive purchase restored the carry bar
+	"FreeRevive", -- client -> server: () take the revive offer for free (free access only)
 	"EquipSkin", -- client -> server: (skinKey: string) equip an owned skin set, or "" for none
 	"NetImpact", -- server -> all clients: (position: Vector3, caught: number) net visual
 	"Popup", -- server -> client: (title: string, body: string) message the player dismisses

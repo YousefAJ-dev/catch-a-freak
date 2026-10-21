@@ -17,6 +17,7 @@
 --   /buyskin <key>            simulate buying a skin set Game Pass
 --   /buypass <key>            simulate buying a gameplay Game Pass (money2x)
 --   /policy restricted|open   pretend paid random items are (not) restricted
+--   /freeaccess on|off        turn free access (Config/FreeAccess) on or off for this session
 --   /time <day|dusk|night|dawn>  jump the day/night cycle to that phase, for everyone
 -- Results print to the Output window.
 
@@ -119,6 +120,15 @@ local commands: { Command } = {
 		run = function(player, args)
 			assert(args[1], "expected a pass key")
 			return MonetizationService.simulatePassPurchase(player, args[1])
+		end,
+	},
+	{
+		alias = "/freeaccess",
+		usage = "/freeaccess on|off",
+		run = function(player, args)
+			assert(args[1] == "on" or args[1] == "off", "expected on or off")
+			MonetizationService.setFreeAccess(player, args[1] == "on")
+			return "FreeAccess = " .. tostring(args[1] == "on")
 		end,
 	},
 	{
