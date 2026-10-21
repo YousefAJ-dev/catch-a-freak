@@ -24,19 +24,19 @@ local developerProducts: { [string]: DevProduct } = {
 	-- One Golden Bear Trap (Config/Items.goldenTrap).
 	goldenTrap = {
 		key = "goldenTrap",
-		id = -1,
+		id = 3718491005,
 		name = "Golden Bear Trap",
 		description = "A trap that lures and pins ONLY Rainbow and Radioactive freaks",
 	},
 	extraSpin = {
 		key = "extraSpin",
-		id = -2,
+		id = 3720604931,
 		name = "Extra Wheel Spin",
 		description = "One more spin of the daily wheel, usable right away",
 	},
 	revive = {
 		key = "revive",
-		id = -3,
+		id = 3720602904,
 		name = "Respawn with Caught Freaks",
 		description = "Respawn at the shop still carrying everything you caught",
 	},
@@ -45,7 +45,7 @@ local developerProducts: { [string]: DevProduct } = {
 local passes: { [string]: Pass } = {
 	money2x = {
 		key = "money2x",
-		passId = -201,
+		passId = 2026484651,
 		name = "2x Money",
 		description = "Permanently doubles farm income and sell payouts",
 	},
@@ -54,38 +54,84 @@ local passes: { [string]: Pass } = {
 -- Cosmetic only; the looks themselves arrive with the art in Milestone 10.
 local skinSets: { SkinSet } = {
 	{
-		key = "labCoat",
+		key = "natureIncubator",
 		passId = -101,
-		name = "Lab Coat Set",
-		description = "White coat, safety goggles, polished boots",
+		name = "Nature Incubator",
+		description = "",
 		look = {
-			suit = { color = Color3.fromRGB(240, 242, 245), material = Enum.Material.Fabric },
-			boots = { color = Color3.fromRGB(30, 30, 34), material = Enum.Material.SmoothPlastic },
-			goggles = Color3.fromRGB(120, 220, 255),
+			
 		},
 	},
 	{
-		key = "toxic",
+		key = "iceIncubator",
 		passId = -102,
-		name = "Toxic Set",
-		description = "Glowing green suit and boots",
+		name = "Ice Incubator",
+		description = "",
 		look = {
-			suit = { color = Color3.fromRGB(110, 230, 60), material = Enum.Material.SmoothPlastic },
-			boots = { color = Color3.fromRGB(40, 70, 30), material = Enum.Material.Rubber },
-			goggles = Color3.fromRGB(200, 255, 120),
-			glow = Color3.fromRGB(130, 255, 70),
+			
 		},
 	},
 	{
-		key = "gold",
+		key = "royalIncubator",
 		passId = -103,
-		name = "Gold Set",
-		description = "Gilded hazmat suit and shoes",
+		name = "Royal Incubator",
+		description = "",
 		look = {
-			suit = { color = Color3.fromRGB(235, 185, 60), material = Enum.Material.Foil },
-			boots = { color = Color3.fromRGB(190, 140, 40), material = Enum.Material.Foil },
-			goggles = Color3.fromRGB(255, 230, 150),
-			glow = Color3.fromRGB(255, 210, 90),
+			
+		},
+	},
+	{
+		key = "voidIncubator",
+		passId = -103,
+		name = "Void Incubator",
+		description = "",
+		look = {
+			
+		},
+	},
+	{
+		key = "alienIncubator",
+		passId = -103,
+		name = "Alien Incubator",
+		description = "",
+		look = {
+			
+		},
+	},
+	{
+		key = "sakuraIncubator",
+		passId = -103,
+		name = "Sakura Incubator",
+		description = "",
+		look = {
+			
+		},
+	},
+	{
+		key = "volcanoIncubator",
+		passId = -103,
+		name = "Volcano Incubator",
+		description = "",
+		look = {
+			
+		},
+	},
+	{
+		key = "beachIncubator",
+		passId = -103,
+		name = "Beach Incubator",
+		description = "",
+		look = {
+			
+		},
+	},
+	{
+		key = "techIncubator",
+		passId = -103,
+		name = "Tech Incubator",
+		description = "",
+		look = {
+			
 		},
 	},
 }
