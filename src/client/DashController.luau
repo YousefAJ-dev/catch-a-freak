@@ -13,7 +13,9 @@ local UserInputService = game:GetService("UserInputService")
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Formulas = require(ReplicatedStorage.Shared.Formulas)
 local DashConfig = require(ReplicatedStorage.Shared.Config.Dash)
+local Items = require(ReplicatedStorage.Shared.Config.Items)
 local UiKit = require(script.Parent.UiKit)
+local TouchLayout = require(script.Parent.TouchLayout)
 local Sfx = require(script.Parent.Sfx)
 
 local player = Players.LocalPlayer
@@ -71,12 +73,12 @@ local function dash()
 	end)
 end
 
-local function buildButton(): (TextButton, Frame, TextLabel)
+local function buildButton(): (ScreenGui, TextButton, Frame, TextLabel, TextLabel)
 	local gui = UiKit.make("ScreenGui", { Name = "DashButton", ResetOnSpawn = false })
-	-- Right of the Net and Trap buttons.
+	-- Right of the item buttons.
 	local button = UiKit.make("TextButton", {
 		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0.5, 292 + (BUTTON + 8) * 2, 1, -16),
+		Position = UDim2.new(0.5, 292 + (BUTTON + 8) * #Items.buttons, 1, -16),
 		Size = UDim2.fromOffset(BUTTON, BUTTON),
 		BackgroundColor3 = UiKit.colors.panel,
 		BackgroundTransparency = 0.15,
@@ -95,7 +97,7 @@ local function buildButton(): (TextButton, Frame, TextLabel)
 		Parent = button,
 	})
 	UiKit.corner(shade, 10)
-	UiKit.make("TextLabel", {
+	local keyLabel = UiKit.make("TextLabel", {
 		Position = UDim2.fromOffset(6, 4),
 		Size = UDim2.fromOffset(20, 16),
 		BackgroundTransparency = 1,
@@ -119,15 +121,34 @@ local function buildButton(): (TextButton, Frame, TextLabel)
 		Parent = button,
 	})
 	gui.Parent = player:WaitForChild("PlayerGui")
-	return button, shade, label
+	return gui, button, shade, label, keyLabel
 end
 
 -- Same as pressing F; exposed for scripted tests.
 DashController.dash = dash
 
 function DashController.start()
-	local button, shade, label = buildButton()
+	local gui, button, shade, label, keyLabel = buildButton()
 	button.Activated:Connect(dash)
+
+	-- Touch: top of TouchLayout's item column. Hidden while a menu panel is open.
+	local function layout()
+		local touch = TouchLayout.enabled()
+		TouchLayout.adopt(gui)
+		gui.Enabled = not UiKit.anyPanelOpen()
+		if touch then
+			button.AnchorPoint = Vector2.new(1, 1)
+			button.Position, button.Size = TouchLayout.slot("dash")
+		else
+			button.AnchorPoint = Vector2.new(0, 1)
+			button.Position = UDim2.new(0.5, 292 + (BUTTON + 8) * #Items.buttons, 1, -16)
+			button.Size = UDim2.fromOffset(BUTTON, BUTTON)
+		end
+		keyLabel.Visible = not touch
+	end
+	TouchLayout.changed:Connect(layout)
+	UiKit.panelsChanged:Connect(layout)
+	layout()
 
 	local function refreshOwned()
 		button.Visible = ownsDash()

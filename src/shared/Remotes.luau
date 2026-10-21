@@ -27,6 +27,8 @@ local EVENTS = {
 	"NetImpact", -- server -> all clients: (position: Vector3, caught: number) net visual
 	"Popup", -- server -> client: (title: string, body: string) message the player dismisses
 	"FloatText", -- server -> client: (text: string, color: Color3) rises and fades over the player's head
+	"CancelTapGrab", -- client -> server: () stop this player's tap grab
+	"TapGrabEnded", -- server -> client: (freakId: string, caught: boolean) the tap grab on that freak ended
 	"ClaimFreakpedia", -- client -> server: (species: string) claim that species' new Freakpedia entries
 }
 

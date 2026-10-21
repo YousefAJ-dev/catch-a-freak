@@ -2,6 +2,7 @@
 -- HUD: money (top right), health bar, and a radiation warning while in a ring. Display
 -- only; the server owns money (DataService) and health (RadiationService).
 
+local GuiService = game:GetService("GuiService")
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -106,15 +107,22 @@ local function buildGui()
 		Parent = warning,
 	})
 
-	-- Money: top right, below the Roblox top bar. A glowing green badge with a
-	-- coin, so it's the first thing the eye finds.
+	-- Money: up in the top-right corner, level with the Roblox top bar (its own
+	-- gui, which ignores the top bar inset). A glowing green badge with a coin,
+	-- so it's the first thing the eye finds.
+	local moneyGui = make("ScreenGui", {
+		Name = "HudMoney",
+		ResetOnSpawn = false,
+		IgnoreGuiInset = true,
+		Parent = player:WaitForChild("PlayerGui"),
+	})
 	local moneyFrame = make("Frame", {
 		Name = "Money",
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -16, 0, 12),
+		Position = UDim2.new(1, -16, 0, 8),
 		Size = UDim2.fromOffset(290, 64),
 		BackgroundColor3 = Color3.new(1, 1, 1),
-		Parent = gui,
+		Parent = moneyGui,
 	})
 	corner(moneyFrame, 16)
 	make("UIGradient", {
@@ -155,7 +163,7 @@ local function buildGui()
 	local boost = make("TextLabel", {
 		Name = "Boost",
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -16, 0, 86),
+		Position = UDim2.new(1, -16, 0, 80),
 		Size = UDim2.fromOffset(290, 30),
 		BackgroundColor3 = Color3.fromRGB(255, 200, 40),
 		Font = Enum.Font.GothamBlack,
@@ -163,9 +171,21 @@ local function buildGui()
 		TextColor3 = Color3.fromRGB(40, 30, 0),
 		Text = "2x MONEY  ·  ACTIVE",
 		Visible = false,
-		Parent = gui,
+		Parent = moneyGui,
 	})
 	corner(boost, 8)
+
+	-- If Roblox ever puts top bar buttons on the right, step left of them.
+	local function placeMoney()
+		local reserved = math.max(workspace.CurrentCamera.ViewportSize.X - GuiService.TopbarInset.Max.X, 0)
+		local autoScale = moneyGui:FindFirstChild("AutoScale") :: UIScale?
+		local right = -16 - reserved / (if autoScale then autoScale.Scale else 1)
+		moneyFrame.Position = UDim2.new(1, right, 0, 8)
+		boost.Position = UDim2.new(1, right, 0, 80)
+	end
+	GuiService:GetPropertyChangedSignal("TopbarInset"):Connect(placeMoney)
+	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(placeMoney)
+	placeMoney()
 
 	return fill, text, warning, stroke, money, boost
 end
@@ -193,10 +213,11 @@ function HudController.start()
 		money.TextColor3 = if change > 0 then Color3.new(1, 1, 1) else MONEY_SPENT
 		TweenService:Create(money, FLASH, { TextColor3 = MONEY_GREEN }):Play()
 		if change > 0 then
-			local top = if boost.Visible then 120 else 80 -- below the 2x badge when it shows
+			local top = if boost.Visible then 114 else 76 -- below the 2x badge when it shows
+			local right = moneyFrame.Position.X.Offset
 			local float = make("TextLabel", {
 				AnchorPoint = Vector2.new(1, 0),
-				Position = UDim2.new(1, -16, 0, top),
+				Position = UDim2.new(1, right, 0, top),
 				Size = UDim2.fromOffset(200, 28),
 				BackgroundTransparency = 1,
 				Font = Enum.Font.GothamBlack,
@@ -207,7 +228,7 @@ function HudController.start()
 				Text = "+" .. Format.money(change),
 				Parent = moneyFrame.Parent,
 			})
-			TweenService:Create(float, FLOAT, { Position = UDim2.new(1, -16, 0, top + 40), TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
+			TweenService:Create(float, FLOAT, { Position = UDim2.new(1, right, 0, top + 40), TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
 			task.delay(FLOAT.Time, function()
 				float:Destroy()
 			end)

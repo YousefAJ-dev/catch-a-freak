@@ -13,6 +13,8 @@
 --
 -- Grabbing uses the freak's ProximityPrompt. Its hold events reach the server
 -- directly, so the server times the hold itself and trusts nothing from the client.
+-- On touch devices one tap starts the grab and the server keeps timing it
+-- while the player stays in range (see tapGrabs).
 --
 -- Items (ItemService) use query/capture/pin. A pinned freak stands still,
 -- never expires, and can only be grabbed by the trap's owner, in
@@ -21,6 +23,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage.Shared
 local Formulas = require(Shared.Formulas)
@@ -152,13 +155,12 @@ local function notify(player: Player, message: string)
 	Remotes.Notify:FireClient(player, message)
 end
 
--- Server-side checks for a finished grab. The first player to pass wins.
-local function tryGrab(player: Player, freak: Freak)
-	local holdStart = freak.holdStarts[player]
-	freak.holdStarts[player] = nil
-	freak.holding[player] = nil
-	if freaks[freak.id] ~= freak or not holdStart then
-		return
+-- Server-side checks for a grab in progress: the player is alive, in range,
+-- in the freak's zone, and not blocked by someone else's pin. Returns the hold
+-- time they need, or nil if they can't grab the freak right now.
+local function grabHold(player: Player, freak: Freak): number?
+	if freaks[freak.id] ~= freak then
+		return nil
 	end
 
 	local character = player.Character
@@ -166,32 +168,32 @@ local function tryGrab(player: Player, freak: Freak)
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	local data = DataService.get(player)
 	if not (humanoid and root and data) or humanoid.Health <= 0 then
-		return
+		return nil
 	end
 
 	local freakPosition = currentPosition(freak)
 	local offset = root.Position - freakPosition
 	if Vector3.new(offset.X, 0, offset.Z).Magnitude > FreakConfig.grabRange + RANGE_TOLERANCE then
-		return
+		return nil
 	end
 	if Formulas.zoneFromPosition(root.Position).name ~= Formulas.zoneFromPosition(freakPosition).name then
-		return
+		return nil
 	end
 	if freak.pinnedBy and freak.pinnedBy ~= player then
 		notify(player, "That freak is pinned by someone else's trap")
-		return
+		return nil
 	end
-	local required = if freak.pinnedBy == player
+	return if freak.pinnedBy == player
 		then Items.bearTrap.pinnedHold
 		else Formulas.holdTime(freak.species.tier, freak.rarity.id, data.upgrades.grip)
-	if os.clock() - holdStart < required - HOLD_TOLERANCE then
-		return
-	end
+end
+
+-- A finished grab: the freak goes into the carry bar if there's room.
+local function completeGrab(player: Player, freak: Freak)
 	if not CarryService.hasFreeSlot(player) then
 		notify(player, "Carry full — drop off your freaks first")
 		return
 	end
-
 	local caught = {
 		species = freak.species.name,
 		tier = freak.species.tier,
@@ -200,6 +202,50 @@ local function tryGrab(player: Player, freak: Freak)
 	}
 	CarryService.add(player, caught)
 	despawn(freak, "caught")
+end
+
+-- The prompt was held to the end. The first player to pass the checks wins.
+local function tryGrab(player: Player, freak: Freak)
+	local holdStart = freak.holdStarts[player]
+	freak.holdStarts[player] = nil
+	freak.holding[player] = nil
+	if not holdStart then
+		return
+	end
+	local required = grabHold(player, freak)
+	if required and os.clock() - holdStart >= required - HOLD_TOLERANCE then
+		completeGrab(player, freak)
+	end
+end
+
+-- Tap grabs (touch devices): the client's prompt has a hold time of 0, so a
+-- tap triggers it at once. The server then times the grab itself and keeps it
+-- going while the player stays in range; a second tap on the same freak, or
+-- CancelTapGrab, stops it. One tap grab per player at a time.
+local tapGrabs: { [Player]: { freak: Freak, started: number } } = {}
+
+local function endTapGrab(player: Player, caught: boolean?)
+	local tap = tapGrabs[player]
+	if not tap then
+		return
+	end
+	tapGrabs[player] = nil
+	tap.freak.holding[player] = nil
+	Remotes.TapGrabEnded:FireClient(player, tap.freak.id, caught == true)
+end
+
+local function tapGrab(player: Player, freak: Freak)
+	local current = tapGrabs[player]
+	endTapGrab(player)
+	if current and current.freak == freak then
+		return
+	end
+	if not grabHold(player, freak) then
+		Remotes.TapGrabEnded:FireClient(player, freak.id, false)
+		return
+	end
+	tapGrabs[player] = { freak = freak, started = os.clock() }
+	freak.holding[player] = true
 end
 
 local function spawnFreak(species: FreakConfig.Species, rarity: Rarities.Rarity, homeZone: World.Zone, position: Vector3, counted: boolean): Freak
@@ -255,7 +301,11 @@ local function spawnFreak(species: FreakConfig.Species, rarity: Rarities.Rarity,
 		freak.holding[player] = nil
 	end)
 	prompt.Triggered:Connect(function(player)
-		tryGrab(player, freak)
+		if freak.holdStarts[player] then
+			tryGrab(player, freak)
+		else
+			tapGrab(player, freak)
+		end
 	end)
 
 	freaks[id] = freak
@@ -482,6 +532,26 @@ function FreakService.start()
 		for _, freak in freaks do
 			freak.holdStarts[player] = nil
 			freak.holding[player] = nil
+		end
+		tapGrabs[player] = nil
+	end)
+
+	Remotes.CancelTapGrab.OnServerEvent:Connect(function(player)
+		endTapGrab(player)
+	end)
+	RunService.Heartbeat:Connect(function()
+		for player, tap in tapGrabs do
+			local required = grabHold(player, tap.freak)
+			-- The tap reached us half a ping after the player's bar started and
+			-- the catch reaches them half a ping after this, so finish a ping
+			-- early to land when their bar fills (see FreakConfig.grabLeadMax).
+			local lead = math.clamp(player:GetNetworkPing(), 0, FreakConfig.grabLeadMax)
+			if not required then
+				endTapGrab(player)
+			elseif os.clock() - tap.started >= required - lead then
+				endTapGrab(player, CarryService.hasFreeSlot(player))
+				completeGrab(player, tap.freak)
+			end
 		end
 	end)
 

@@ -73,6 +73,21 @@ export type Panel = {
 	close: TextButton, -- the X in the corner; controllers connect what closing means
 }
 
+-- Every panel made by UiKit.panel (Shop, Sell, Gate, Wheel, Lab), so other
+-- controls can step aside while one is open.
+local panelGuis: { ScreenGui } = {}
+local panelsChangedEvent = Instance.new("BindableEvent")
+UiKit.panelsChanged = panelsChangedEvent.Event
+
+function UiKit.anyPanelOpen(): boolean
+	for _, gui in panelGuis do
+		if gui.Enabled then
+			return true
+		end
+	end
+	return false
+end
+
 -- A panel docked on the right edge of the screen, hidden until enabled: a
 -- header bar in the panel's `accent` color, a glowing accent border and a
 -- drop shadow, so it stands out over the world.
@@ -183,6 +198,10 @@ function UiKit.panel(name: string, title: string, accent: Color3?): Panel
 		Parent = frame,
 	})
 
+	table.insert(panelGuis, gui)
+	gui:GetPropertyChangedSignal("Enabled"):Connect(function()
+		panelsChangedEvent:Fire()
+	end)
 	gui.Parent = player:WaitForChild("PlayerGui")
 	return { gui = gui, title = titleLabel, subtitle = subtitle, list = list, footer = footer, close = close }
 end

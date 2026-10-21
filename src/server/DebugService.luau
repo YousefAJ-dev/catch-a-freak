@@ -132,6 +132,16 @@ local commands: { Command } = {
 		end,
 	},
 	{
+		alias = "/touchmode",
+		usage = "/touchmode on|off",
+		run = function(player, args)
+			assert(args[1] == "on" or args[1] == "off", "expected on or off")
+			-- GrabController treats the player as on a touch device (Studio only).
+			player:SetAttribute("DebugTouchMode", args[1] == "on")
+			return "DebugTouchMode = " .. tostring(args[1] == "on")
+		end,
+	},
+	{
 		alias = "/policy",
 		usage = "/policy restricted|open",
 		run = function(player, args)

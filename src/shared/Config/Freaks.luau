@@ -69,6 +69,10 @@ return {
 	waitMin = 1,
 	waitMax = 3,
 	grabRange = 10,
+	-- A grab finishes this much early (the player's ping, up to this cap) so the
+	-- freak disappears just as the player's grab bar fills, instead of one ping
+	-- later. Must stay under FreakService's HOLD_TOLERANCE.
+	grabLeadMax = 0.2,
 	-- Only the nearest few freaks get a rarity outline: Roblox renders at most
 	-- ~31 outlines (Highlights) at once, and this keeps the view uncluttered.
 	outlinedNearest = 12,

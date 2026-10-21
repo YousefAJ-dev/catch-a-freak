@@ -4,6 +4,10 @@
 -- the player stands. On-screen
 -- buttons do the same for mobile (the net then fires straight ahead). Counts
 -- come from the "Item_<id>" attributes; ItemService does everything else.
+--
+-- Items can't be used while a menu panel (Shop, Sell, ...) is open, and the
+-- buttons hide meanwhile, so a tap meant for the panel can't set a trap. On
+-- touch devices the buttons sit in TouchLayout's right-hand column.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -14,6 +18,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Items = require(ReplicatedStorage.Shared.Config.Items)
 local UiKit = require(script.Parent.UiKit)
 local Sfx = require(script.Parent.Sfx)
+local TouchLayout = require(script.Parent.TouchLayout)
 
 local player = Players.LocalPlayer
 
@@ -65,6 +70,9 @@ local LABELS = { netLauncher = "Net", bearTrap = "Trap", goldenTrap = "Gold" }
 local GOLD = Color3.fromRGB(255, 200, 60)
 
 local function use(id: string, useMouse: boolean)
+	if UiKit.anyPanelOpen() then
+		return
+	end
 	if id == "netLauncher" then
 		fireNet(useMouse)
 	else
@@ -110,7 +118,7 @@ local function buildButtons(): { [string]: TextLabel }
 		BackgroundTransparency = 1,
 		Parent = gui,
 	})
-	UiKit.make("UIListLayout", {
+	local list = UiKit.make("UIListLayout", {
 		FillDirection = Enum.FillDirection.Horizontal,
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		Padding = UDim.new(0, 8),
@@ -118,6 +126,8 @@ local function buildButtons(): { [string]: TextLabel }
 	})
 
 	local counts = {}
+	local buttons: { TextButton } = {}
+	local keyLabels: { TextLabel } = {}
 	for order, id in Items.buttons do
 		local item = (Items :: any)[id]
 		local golden = id == "goldenTrap"
@@ -137,7 +147,7 @@ local function buildButtons(): { [string]: TextLabel }
 			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 			Parent = button,
 		})
-		UiKit.make("TextLabel", {
+		keyLabels[order] = UiKit.make("TextLabel", {
 			Position = UDim2.fromOffset(6, 4),
 			Size = UDim2.fromOffset(20, 16),
 			BackgroundTransparency = 1,
@@ -148,6 +158,7 @@ local function buildButtons(): { [string]: TextLabel }
 			Text = item.key.Name,
 			Parent = button,
 		})
+		buttons[order] = button
 		UiKit.make("TextLabel", {
 			Position = UDim2.new(0, 4, 0.32, 0),
 			Size = UDim2.new(1, -8, 0.36, 0),
@@ -174,6 +185,37 @@ local function buildButtons(): { [string]: TextLabel }
 			use(id, false)
 		end)
 	end
+
+	local function layout()
+		local touch = TouchLayout.enabled()
+		TouchLayout.adopt(gui)
+		gui.Enabled = not UiKit.anyPanelOpen()
+		-- Touch: each button in its own slot, so the holder covers the screen
+		-- (it's transparent and doesn't take input).
+		list.Parent = if touch then nil else holder
+		holder.AnchorPoint = if touch then Vector2.zero else Vector2.new(0, 1)
+		holder.Position = if touch then UDim2.new() else UDim2.new(0.5, 292, 1, -16)
+		holder.Size = if touch
+			then UDim2.fromScale(1, 1)
+			else UDim2.fromOffset(BUTTON * #Items.buttons + 8 * (#Items.buttons - 1), BUTTON)
+		for order, button in buttons do
+			if touch then
+				button.AnchorPoint = Vector2.new(1, 1)
+				button.Position, button.Size = TouchLayout.slot("item" .. order)
+			else
+				button.AnchorPoint = Vector2.zero
+				button.Size = UDim2.fromOffset(BUTTON, BUTTON)
+			end
+			keyLabels[order].Visible = not touch
+			local count = counts[Items.buttons[order]]
+			count.TextSize = if touch then math.floor(button.Size.X.Offset * 0.24) else 15
+			count.Size = UDim2.fromOffset(count.TextSize * 2, count.TextSize * 1.2)
+		end
+	end
+	TouchLayout.changed:Connect(layout)
+	UiKit.panelsChanged:Connect(layout)
+	layout()
+
 	gui.Parent = player:WaitForChild("PlayerGui")
 	return counts
 end

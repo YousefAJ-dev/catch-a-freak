@@ -30,6 +30,7 @@ local Rarities = require(Shared.Config.Rarities)
 local Release = require(Shared.Config.Release)
 local UiKit = require(script.Parent.UiKit)
 local Sfx = require(script.Parent.Sfx)
+local TouchLayout = require(script.Parent.TouchLayout)
 
 local player = Players.LocalPlayer
 
@@ -452,7 +453,8 @@ function FreakpediaController.start()
 		setOpen(false)
 	end)
 
-	-- The book button, on the left edge of the screen.
+	-- The book button, on the left edge of the screen; on touch devices a round
+	-- book in TouchLayout's cluster on the right, by the other thumb buttons.
 	local hud = UiKit.make("ScreenGui", { Name = "FreakpediaButton", ResetOnSpawn = false })
 	local button = UiKit.make("TextButton", {
 		AnchorPoint = Vector2.new(0, 0.5),
@@ -488,14 +490,35 @@ function FreakpediaController.start()
 	})
 	UiKit.corner(keycap, 6)
 	UiKit.make("UIStroke", { Color = UiKit.accents.freakpedia, Thickness = 1.5, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = keycap })
-	local function updateKeycap()
-		keycap.Visible = UserInputService.KeyboardEnabled
+	local buttonCorner = button:FindFirstChildOfClass("UICorner") :: UICorner
+	local function layoutButton()
+		local touch = TouchLayout.enabled()
+		TouchLayout.adopt(hud)
+		if touch then
+			button.AnchorPoint = Vector2.new(1, 1)
+			button.Position, button.Size = TouchLayout.slot("freakpedia")
+			buttonCorner.CornerRadius = UDim.new(0.5, 0)
+			title.Text = "📖"
+			title.TextSize = math.floor(button.Size.X.Offset * 0.45)
+		else
+			button.AnchorPoint = Vector2.new(0, 0.5)
+			button.Position = UDim2.new(0, 16, 0.5, 0)
+			button.Size = UDim2.fromOffset(190, 48)
+			buttonCorner.CornerRadius = UDim.new(0, 12)
+			title.Text = "📖 Freakpedia"
+			title.TextSize = 18
+		end
+		-- On touch it sits where the menu panels open, so it steps aside for them.
+		hud.Enabled = not (touch and UiKit.anyPanelOpen())
+		keycap.Visible = UserInputService.KeyboardEnabled and not touch
 		-- Centered in the space right of the keycap when it shows.
 		title.Position = UDim2.fromOffset(if keycap.Visible then 36 else 0, 0)
 		title.Size = UDim2.new(1, if keycap.Visible then -36 else 0, 1, 0)
 	end
-	UserInputService:GetPropertyChangedSignal("KeyboardEnabled"):Connect(updateKeycap)
-	updateKeycap()
+	UserInputService:GetPropertyChangedSignal("KeyboardEnabled"):Connect(layoutButton)
+	TouchLayout.changed:Connect(layoutButton)
+	UiKit.panelsChanged:Connect(layoutButton)
+	layoutButton()
 	button.Activated:Connect(function()
 		Sfx.play("click")
 		setOpen(not gui.Enabled)

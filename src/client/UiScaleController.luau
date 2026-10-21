@@ -1,6 +1,7 @@
 --!strict
 -- Scales every game ScreenGui down on small screens (phones), so the panels,
--- HUD and carry bar fit. The UI is laid out in pixels for a screen at least
+-- HUD and carry bar fit. Roblox's TouchGui and guis marked NoAutoScale
+-- (TouchLayout) are left at full size. The UI is laid out in pixels for a screen at least
 -- REFERENCE wide and tall; smaller screens shrink it evenly, down to MIN_SCALE.
 
 local Players = game:GetService("Players")
@@ -15,7 +16,7 @@ local UiScaleController = {}
 function UiScaleController.start()
 	local playerGui = player:WaitForChild("PlayerGui")
 	local camera = workspace.CurrentCamera
-	local scales: { UIScale } = {}
+	local updaters: { () -> () } = {}
 
 	local function scaleFor(): number
 		local view = camera.ViewportSize
@@ -23,13 +24,21 @@ function UiScaleController.start()
 	end
 
 	local function adopt(gui: Instance)
-		if gui:IsA("ScreenGui") and not gui:FindFirstChild("AutoScale") then
-			local scale = Instance.new("UIScale")
-			scale.Name = "AutoScale"
-			scale.Scale = scaleFor()
-			scale.Parent = gui
-			table.insert(scales, scale)
+		-- Roblox's own touch controls (thumbstick, jump) keep their native size.
+		if not gui:IsA("ScreenGui") or gui.Name == "TouchGui" or gui:FindFirstChild("AutoScale") then
+			return
 		end
+		local scale = Instance.new("UIScale")
+		scale.Name = "AutoScale"
+		scale.Parent = gui
+		-- A gui with the NoAutoScale attribute sizes itself (TouchLayout's
+		-- controls, which sit by the touch jump button that Roblox doesn't scale).
+		local function update()
+			scale.Scale = if gui:GetAttribute("NoAutoScale") then 1 else scaleFor()
+		end
+		gui:GetAttributeChangedSignal("NoAutoScale"):Connect(update)
+		update()
+		table.insert(updaters, update)
 	end
 
 	for _, gui in playerGui:GetChildren() do
@@ -37,9 +46,8 @@ function UiScaleController.start()
 	end
 	playerGui.ChildAdded:Connect(adopt)
 	camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
-		local s = scaleFor()
-		for _, scale in scales do
-			scale.Scale = s
+		for _, update in updaters do
+			update()
 		end
 	end)
 end
