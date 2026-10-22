@@ -68,7 +68,7 @@ World.farm = {
 	padSize = 11, -- each pad is the floor of a square glass incubator this wide
 	incubatorHeight = 16, -- inside height, tall enough for big freaks
 	aisleWidth = 8,
-	startingUnlockedPads = 3, -- matches the farm's starting capacity
+	startingUnlockedPads = 2, -- matches the farm's starting capacity
 	collectPadSize = 6,
 	collectPadGap = 2, -- distance between the plot's front edge and the collection pad
 }

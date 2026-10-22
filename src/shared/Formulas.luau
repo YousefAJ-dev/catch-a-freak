@@ -229,16 +229,22 @@ function Formulas.tierForUpgradeLevel(upgradeId: string, level: number): number
 	return if perTier then math.ceil(level / perTier) else 1
 end
 
--- Hours of farm income that can pile up while the player is offline.
-function Formulas.offlineHours(offlineLevel: number): number
-	return 1 + Upgrades.offlineCapacity.effectPerLevel * offlineLevel
+-- The most money that can pile up while the player is offline: a share of
+-- their current ring's gear budget, set by how many of that ring's Offline
+-- Capacity levels they own (Economy.offlineBudgetShares).
+function Formulas.offlineCap(offlineLevel: number, highestTier: number): number
+	local tier = math.clamp(highestTier, 1, #Tiers)
+	local perTier = Upgrades.offlineCapacity.levelsPerTier :: number
+	local shares = Economy.offlineBudgetShares
+	local inRing = math.clamp(offlineLevel - perTier * (tier - 1), 0, #shares - 1)
+	return math.floor(shares[inRing + 1] * Formulas.ringGearBudget(tier))
 end
 
--- Money earned while offline: the farm's income for the time away, capped at
--- the Offline Capacity limit. Never boosted by 2x Money (DESIGN.md section 6).
-function Formulas.offlineEarnings(incomePerSecond: number, secondsAway: number, offlineLevel: number): number
-	local cappedSeconds = math.min(math.max(secondsAway, 0), Formulas.offlineHours(offlineLevel) * 3600)
-	return math.floor((incomePerSecond * cappedSeconds) / 2)
+-- Money earned while offline: half the farm's income for the time away,
+-- capped by Formulas.offlineCap. Never boosted by 2x Money (DESIGN.md section 6).
+function Formulas.offlineEarnings(incomePerSecond: number, secondsAway: number, offlineLevel: number, highestTier: number): number
+	local earned = math.floor((incomePerSecond * math.max(secondsAway, 0)) / 2)
+	return math.min(earned, Formulas.offlineCap(offlineLevel, highestTier))
 end
 
 -- Price of one item, scaled by the player's highest unlocked tier.
@@ -252,9 +258,48 @@ function Formulas.itemPrice(itemId: string, highestTier: number): number
 end
 
 -- Cost of buying the next level of an upgrade, rounded to the nearest dollar.
+-- Hours buying a ring's full gear set should take: 0.5 for Ring 1, then N − 1.
+function Formulas.ringPaceHours(tier: number): number
+	return if tier == 1 then Economy.firstRingHours else tier - 1
+end
+
+-- What a ring's full set of gear levels costs in total (Config/Upgrades): the
+-- ring's income (base income × its average incubator count while the player
+-- is on it) over its pace time, scaled by Economy.gearBudgetRate.
+function Formulas.ringGearBudget(tier: number): number
+	local padsBefore = Formulas.farmCapacity(Formulas.upgradeLevelCap("farmCapacity", tier - 1))
+	local padsAfter = Formulas.farmCapacity(Formulas.upgradeLevelCap("farmCapacity", tier))
+	local seconds = Formulas.ringPaceHours(tier) * 3600
+	return Economy.gearBudgetRate * Tiers[tier].baseIncome * (padsBefore + padsAfter) / 2 * seconds
+end
+
+-- The price weights of every gear level in a ring, summed: each level's share
+-- of the budget is its weight over this.
+local function ringGearWeight(tier: number): number
+	local total = 0
+	for _, id in Economy.gearUpgrades do
+		local upgrade = Upgrades[id]
+		local perTier = upgrade.levelsPerTier :: number
+		for level = perTier * (tier - 1), math.min(perTier * tier, upgrade.maxLevel) - 1 do
+			total += (upgrade.priceWeight :: number) * upgrade.growth ^ (level % perTier)
+		end
+	end
+	return total
+end
+
 function Formulas.upgradeCost(upgradeId: string, currentLevel: number): number
 	local upgrade = Upgrades[upgradeId]
-	return math.round(upgrade.baseCost * upgrade.growth ^ currentLevel)
+	if upgrade.priceOf then
+		local other = Upgrades[upgrade.priceOf.upgrade]
+		local last = Formulas.upgradeCost(other.id, other.maxLevel - 1)
+		return math.round(upgrade.priceOf.multiplier * last * upgrade.growth ^ currentLevel)
+	elseif upgrade.levelsPerTier then
+		local perTier = upgrade.levelsPerTier
+		local tier = math.min(currentLevel // perTier + 1, #Tiers)
+		local weight = (upgrade.priceWeight :: number) * upgrade.growth ^ (currentLevel % perTier)
+		return math.round(Formulas.ringGearBudget(tier) * weight / ringGearWeight(tier))
+	end
+	return math.round((upgrade.baseCost :: number) * upgrade.growth ^ currentLevel)
 end
 
 return Formulas

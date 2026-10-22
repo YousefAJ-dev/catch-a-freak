@@ -61,7 +61,7 @@ local function newData(): Data
 		upgrades[id] = 0
 	end
 	return {
-		version = 1,
+		version = 3,
 		money = 0,
 		upgrades = upgrades,
 		items = { netLauncher = 0, bearTrap = 0, goldenTrap = 0 },
@@ -426,6 +426,25 @@ local function onPlayerAdded(player: Player)
 		if typeof(value) == "boolean" then
 			profile.Data.gateProgress[i] = if value and gate and gate.requirements[i] then gate.requirements[i].count else 0
 		end
+	end
+	-- Version 2: Shoes and Hazmat went from 5 levels per ring to 3. Old levels
+	-- scale by 3/5, rounded up, so nobody ends up with less than they paid for.
+	if profile.Data.version < 2 then
+		for _, id in { "shoes", "hazmat" } do
+			local old = profile.Data.upgrades[id] or 0
+			profile.Data.upgrades[id] = math.min(math.ceil(old * 3 / 5), Upgrades[id].maxLevel)
+		end
+		profile.Data.version = 2
+	end
+	-- Version 3: the farm starts with 2 incubators instead of 3 (2 more per
+	-- ring), so Farm Capacity levels go up by 1 to keep every unlocked
+	-- incubator. Offline Capacity became a money cap with 2 levels per ring;
+	-- old levels (hours) are cut to what the player's tier allows.
+	if profile.Data.version < 3 then
+		local upgrades = profile.Data.upgrades
+		upgrades.farmCapacity = math.min((upgrades.farmCapacity or 0) + 1, Upgrades.farmCapacity.maxLevel)
+		upgrades.offlineCapacity = math.min(upgrades.offlineCapacity or 0, (Upgrades.offlineCapacity.levelsPerTier :: number) * profile.Data.highestTier)
+		profile.Data.version = 3
 	end
 	profile.OnSessionEnd:Connect(function()
 		profiles[player] = nil

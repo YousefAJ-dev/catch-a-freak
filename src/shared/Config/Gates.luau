@@ -5,12 +5,12 @@
 -- `species` can also be a list, e.g. { "Bloatworm", "Hexwing", "Sludgelet" }:
 -- then a freak of any of those species counts.
 --
--- Each ring should take about twice as long as the one before (15 min, 30,
--- 1 h, 2 h, 4 h). Gates grow by roughly doubling the freaks a player has to
--- find: one Rare of a species turns up about every 15 freaks met in its ring,
+-- Rings are paced at 30 min, then 1, 2, 3, 4 h (Config/Economy prices each
+-- ring's gear to match). Gates grow by roughly doubling the freaks a player
+-- has to find: one Rare of a species turns up about every 15 freaks met in its ring,
 -- one Epic about every 50 (3 species per ring), so the gates below need about
--- 21, 42, 80 and 180 freaks met. Upgrade costs double each ring too (Config/
--- Upgrades). Tune both from playtest timings (/progress, DataService).
+-- 21, 42, 80 and 180 freaks met. Tune from playtest timings (/progress,
+-- DataService).
 
 export type Requirement = { species: string | { string }, rarity: string, count: number }
 export type Gate = { unlocksTier: number, requirements: { Requirement } }

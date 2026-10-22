@@ -170,7 +170,12 @@ local function skinByPass(passId: number): Products.SkinSet?
 end
 
 -- Game Passes live on Roblox, not in our save: check them on every join.
+-- Skipped in Studio, where Roblox reports the game's creator as owning every
+-- pass; /buypass and /removepass stand in for buying there.
 local function checkOwnedPasses(player: Player)
+	if RunService:IsStudio() then
+		return
+	end
 	for _, skin in Products.skinSets do
 		if ownsPass(player, skin.passId) then
 			grantSkin(player, skin.key)
@@ -188,6 +193,17 @@ function MonetizationService.simulatePassPurchase(player: Player, passKey: strin
 	assert(Products.passes[passKey], "unknown pass " .. tostring(passKey))
 	grantPass(player, passKey)
 	return "granted pass " .. passKey
+end
+
+-- Takes a gameplay pass back off the save, to playtest without it.
+function MonetizationService.removePass(player: Player, passKey: string): string
+	assert(RunService:IsStudio(), "Studio only")
+	local data = DataService.get(player)
+	local index = data and table.find(data.ownedPasses, passKey)
+	assert(data and index, "you don't own " .. tostring(passKey))
+	table.remove(data.ownedPasses, index)
+	DataService.refresh(player)
+	return "removed pass " .. passKey
 end
 
 function MonetizationService.simulateSkinPurchase(player: Player, skinKey: string): string
@@ -216,6 +232,10 @@ end
 -- Free access ---------------------------------------------------------------
 
 local function checkFreeAccess(player: Player)
+	if RunService:IsStudio() and not FreeAccess.applyInStudio then
+		DataService.setFreeAccess(player, false)
+		return
+	end
 	local listed = table.find(FreeAccess.userIds, player.UserId) ~= nil
 	DataService.setFreeAccess(player, listed or ownsPass(player, FreeAccess.passId))
 end

@@ -5,7 +5,8 @@
 -- any rarity), its name ("???" until then), and a pip per rarity, lit for the
 -- rarities collected. The footer shows the page reward and the total bonus.
 --
--- A freak becomes a new entry once it's put in an incubator. New entries wait
+-- A freak becomes a new entry once it's brought home and incubated, turned in
+-- at a gate or sold. New entries wait
 -- on their species' card (a half-lit pip and a CLAIM button that pays the
 -- reward); the red badge on the book button counts them, and each ring tab
 -- shows how many it has. A "P" keycap on the button shows the shortcut
@@ -277,7 +278,7 @@ function FreakpediaController.start()
 	local pageLine = footerLine(-84, Enum.Font.GothamBold, UiKit.colors.text)
 	local bonusLine = footerLine(-58, Enum.Font.GothamBold, UiKit.colors.money)
 	local hintLine = footerLine(-34, Enum.Font.Gotham, UiKit.colors.muted)
-	hintLine.Text = ("Put a new freak in an incubator, then CLAIM it here for its sell price. Each %s or %s entry adds +%d%%."):format(
+	hintLine.Text = ("Incubate, turn in or sell a new freak, then CLAIM it here for its sell price. Each %s or %s entry adds +%d%%."):format(
 		Freakpedia.shinyRarities[1],
 		Freakpedia.shinyRarities[2],
 		math.round(Freakpedia.shinyBonus * 100)

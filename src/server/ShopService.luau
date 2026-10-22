@@ -18,6 +18,7 @@ local Upgrades = require(Shared.Config.Upgrades)
 local Items = require(Shared.Config.Items)
 local DataService = require(script.Parent.DataService)
 local CarryService = require(script.Parent.CarryService)
+local FreakpediaService = require(script.Parent.FreakpediaService)
 
 local CHECK_INTERVAL = 0.25
 
@@ -53,6 +54,7 @@ local function sellSlot(player: Player, slot: number): number?
 	local multiplier = if data then Formulas.moneyMultiplier(DataService.passesOf(player)) else 1
 	local price = Formulas.sellPrice(freak.tier, freak.rarity, freak.effects) * multiplier
 	DataService.addMoney(player, price)
+	FreakpediaService.discover(player, freak)
 	return price
 end
 

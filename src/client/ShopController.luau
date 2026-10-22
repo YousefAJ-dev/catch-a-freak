@@ -29,7 +29,7 @@ local UPGRADE_ORDER = { "shoes", "dash", "dashRecharge", "hazmat", "grip", "farm
 
 -- What each upgrade changes, and its value at a given level. Rows read
 -- "<label> <now> → <next>", e.g. "Radiation −84% → −87%".
-local EFFECT: { [string]: { label: string, value: (level: number) -> string } } = {
+local EFFECT: { [string]: { label: string, value: (level: number, tier: number) -> string } } = {
 	shoes = {
 		label = "Walk speed",
 		value = function(level)
@@ -55,9 +55,9 @@ local EFFECT: { [string]: { label: string, value: (level: number) -> string } } 
 		end,
 	},
 	offlineCapacity = {
-		label = "Offline earnings",
-		value = function(level)
-			return ("%d h"):format(Formulas.offlineHours(level))
+		label = "Offline cap",
+		value = function(level, tier)
+			return Format.money(Formulas.offlineCap(level, tier))
 		end,
 	},
 	dash = {
@@ -101,15 +101,15 @@ function ShopController.start()
 				local what = if needed.maxLevel > 1 then ("%s level %d"):format(needed.name, requires.level) else needed.name
 				UiKit.row(panel.list, i, title, effect.label, ("Requires %s"):format(what), "Locked", UiKit.colors.go, false, function() end)
 			elseif maxed then
-				UiKit.row(panel.list, i, title, ("%s %s"):format(effect.label, effect.value(level)), "Max level", "Max", UiKit.colors.go, false, function() end)
+				UiKit.row(panel.list, i, title, ("%s %s"):format(effect.label, effect.value(level, tier)), "Max level", "Max", UiKit.colors.go, false, function() end)
 			elseif capped then
 				local needed = Formulas.tierForUpgradeLevel(id, level + 1)
-				UiKit.row(panel.list, i, title, ("%s %s"):format(effect.label, effect.value(level)), ("Next level unlocks at Tier %d"):format(needed), ("Tier %d"):format(needed), UiKit.colors.go, false, function() end)
+				UiKit.row(panel.list, i, title, ("%s %s"):format(effect.label, effect.value(level, tier)), ("Next level unlocks at Tier %d"):format(needed), ("Tier %d"):format(needed), UiKit.colors.go, false, function() end)
 			else
 				local cost = Formulas.upgradeCost(id, level)
 				local change = if upgrade.maxLevel == 1
 					then effect.label -- one-time purchase: just say what it does
-					else ("%s %s → %s"):format(effect.label, effect.value(level), effect.value(level + 1))
+					else ("%s %s → %s"):format(effect.label, effect.value(level, tier), effect.value(level + 1, tier))
 				UiKit.row(panel.list, i, title, change, Format.money(cost), "Buy", UiKit.colors.go, money() >= cost, function()
 					Remotes.BuyUpgrade:FireServer(id)
 				end)

@@ -1,7 +1,8 @@
 --!strict
 -- The Freakpedia (Config/Freakpedia). A species at a rarity becomes a new
--- entry when the player puts it in an incubator (FarmService calls
--- discover()); catching alone isn't enough. New entries wait in the book, and
+-- entry once the player brings it home and uses it: puts it in an incubator
+-- (FarmService), turns it in at a gate (GateService) or sells it
+-- (ShopService), each of which calls discover(). Catching alone isn't enough. New entries wait in the book, and
 -- the player claims them by clicking the species' card (Remotes
 -- ClaimFreakpedia), which pays the discovery reward and counts them toward
 -- pages. Completed pages are announced on claim. The farm income bonus itself

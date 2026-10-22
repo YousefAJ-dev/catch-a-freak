@@ -386,20 +386,20 @@ function FarmService.applyOfflineEarnings(player: Player, secondsAway: number): 
 		return 0
 	end
 	local income = incomeOf(data)
-	local earned = Formulas.offlineEarnings(income, secondsAway, data.upgrades.offlineCapacity)
+	local cap = Formulas.offlineCap(data.upgrades.offlineCapacity, data.highestTier)
+	local earned = Formulas.offlineEarnings(income, secondsAway, data.upgrades.offlineCapacity, data.highestTier)
 	if earned <= 0 then
 		return 0
 	end
 	data.uncollected += earned
 	updatePool(player, plot)
-	local hours = Formulas.offlineHours(data.upgrades.offlineCapacity)
-	local capped = secondsAway > hours * 3600
+	local capped = earned >= cap
 	Remotes.Popup:FireClient(
 		player,
 		"Welcome back!",
 		("While you were away your lab earned %s.%s\nIt's waiting on your green collection pad."):format(
 			Format.money(earned),
-			if capped then ("\n(Capped at %d h — upgrade Offline Capacity to store more.)"):format(hours) else ""
+			if capped then ("\n(Capped at %s — upgrade Offline Capacity to store more.)"):format(Format.money(cap)) else ""
 		)
 	)
 	return earned

@@ -16,8 +16,10 @@
 --                             purchaseId to replay a receipt
 --   /buyskin <key>            simulate buying a skin set Game Pass
 --   /buypass <key>            simulate buying a gameplay Game Pass (money2x)
+--   /removepass <key>         take a gameplay Game Pass off your save
 --   /policy restricted|open   pretend paid random items are (not) restricted
 --   /freeaccess on|off        turn free access (Config/FreeAccess) on or off for this session
+--   /touchmode on|off         use the touch (phone/tablet) controls on this computer
 --   /time <day|dusk|night|dawn>  jump the day/night cycle to that phase, for everyone
 -- Results print to the Output window.
 
@@ -120,6 +122,14 @@ local commands: { Command } = {
 		run = function(player, args)
 			assert(args[1], "expected a pass key")
 			return MonetizationService.simulatePassPurchase(player, args[1])
+		end,
+	},
+	{
+		alias = "/removepass",
+		usage = "/removepass <key>",
+		run = function(player, args)
+			assert(args[1], "expected a pass key")
+			return MonetizationService.removePass(player, args[1])
 		end,
 	},
 	{

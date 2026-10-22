@@ -22,10 +22,10 @@ All numbers in this document are **starting values to tune during playtests**. K
 | Value | Each tier is worth 10× the one before it. |
 | Death | Lose every carried freak. Keep money, upgrades, items, and farm. Respawn at your farm. |
 | Farms | One private plot per player, 8 plots, 8 players per server. Every plot is a fixed size with 16 glass incubators on one floor. Capacity upgrades unlock incubators; the plot never changes size. |
-| Radiation | Constant damage per second, doubling every ring. No healing in the rings. |
+| Radiation | Constant damage per second, tied to the Hazmat Suit: each ring is hotter by exactly what that ring's Hazmat levels block, plus 3%. Fully geared players feel each ring slightly harder than the last; a newly unlocked ring runs about 2.3× hotter until its Hazmat is bought. No healing in the rings. |
 | Gates | Each gate asks for a number of 2 specific freaks. A freak of the required species at the required rarity **or higher** counts. Wheel prizes count. |
-| Progression pace | Each ring takes about twice as long as the one before: about 15 min, 30 min, 1 h, 2 h and 4 h (≈ 8 h to reach Ring 5). Collection, mutations, quests and events add playtime on top without slowing the rings. Rings after 5 grow more gently (about 1.5× per ring), so no ring asks for much more than 8 h. |
-| Pacing | Fast at the start, slowing sharply. Each tier multiplies income by 10. Gear (Shoes, Hazmat, Grip) unlocks 5 more levels per ring, and each ring's 5 levels cost 10× the previous ring's, so gear keeps pace with both income and radiation. |
+| Progression pace | Buying a ring's full gear takes about 30 min for Ring 1, then 1 h, 2 h, 3 h and 4 h (N − 1 hours for Ring N; ≈ 10.5 h to finish Ring 5) for a player with a strong farm and no 2x Money. Gates are worked on during the same time. Collection, mutations, quests and events add playtime on top without slowing the rings. |
+| Pacing | Fast at the start, slowing steadily. Each tier multiplies income by about 10. Every ring-priced upgrade unlocks more levels per ring (3 for Shoes and Hazmat, 2 for Farm and Offline Capacity, 5 for Grip), priced from the ring's income and target time (section 7), so gear keeps pace with income and radiation at any number of rings. |
 
 ---
 
@@ -37,11 +37,11 @@ A circular map. Distances are in studs from the map center. Which zone a player 
 |------|--------|----------|-----------|
 | Shop | 0–40 | Shop, sell counter, gate counter, daily wheel | None |
 | Inner ring | 40–175 | 8 farm plots (layout in section 6) | None |
-| Ring 1 (Tier 1) | 175–325 | Tier 1 freaks | 8 HP/s |
-| Ring 2 (Tier 2) | 325–475 | Tier 2 freaks | 16 HP/s |
-| Ring 3 (Tier 3) | 475–625 | Tier 3 freaks | 32 HP/s |
-| Ring 4 (Tier 4) | 625–775 | Tier 4 freaks | 64 HP/s |
-| Ring 5 (Tier 5) | 775–925 | Tier 5 freaks | 128 HP/s |
+| Ring 1 (Tier 1) | 175–325 | Tier 1 freaks | 6 HP/s |
+| Ring 2 (Tier 2) | 325–475 | Tier 2 freaks | 14.1 HP/s |
+| Ring 3 (Tier 3) | 475–625 | Tier 3 freaks | 33 HP/s |
+| Ring 4 (Tier 4) | 625–775 | Tier 4 freaks | 77.5 HP/s |
+| Ring 5 (Tier 5) | 775–925 | Tier 5 freaks | 181.9 HP/s |
 
 Ring N spans radius `175 + 150 × (N − 1)` to `175 + 150 × N`. Raw radiation is before the Hazmat Suit (section 4).
 
@@ -56,7 +56,12 @@ Walls:
 | Tier 5 wall | 775 | 120 | 4 doors, open per player after Gate 4 |
 | Outer boundary | 925 | 120 | None |
 
-Growing to 10 rings later: each new ring adds a tier wall at the old boundary and moves the boundary 150 studs out (10 rings → boundary at 1675). Two things to handle then: a Roblox part can't be wider than 2048 studs, so ground discs past radius 1024 must be split into pieces; and the outermost walls need longer segments to keep the part count reasonable.
+Growing to 10 rings later: each new ring adds a tier wall at the old boundary and moves the boundary 150 studs out (10 rings → boundary at 1675). Things to handle then:
+
+- **Lifts (planned with Ring 6).** Walking out gets long (a round trip from the farm to Ring 10's edge is about 53 s at top speed), and crossing earlier rings costs almost nothing by then, so it adds time without tension. When Ring 6 is added, lifts in the safe zone carry a player to the inner door of Ring 5 and beyond, for any ring they've unlocked. Rings 1–4 keep the walk out.
+- **Sector activation** (section 12) so a bigger ring doesn't cost more to run.
+- A Roblox part can't be wider than 2048 studs, so ground discs past radius 1024 must be split into pieces, and the outermost walls need longer segments to keep the part count reasonable.
+- Money past about 9 quadrillion ($9 × 10^15) can't be stored to the dollar, so the economy needs a look before Ring 10.
 
 Because rings are concentric and equally wide, outer rings have more ground area (Ring 5 has 3.4× Ring 1's area). Freak counts scale with area (section 5), so every ring is equally crowded.
 
@@ -69,7 +74,7 @@ Because rings are concentric and equally wide, outer rings have more ground area
 
 Per-player doors: the door is solid for players who have not unlocked the tier and passable for those who have. Do this with a client-side door state plus a server check. If the server finds a player in a ring above their unlocked tier, it teleports them back to the shop.
 
-Safe zone = shop + inner ring. Health regenerates at 10 HP/sec there. Roblox's default health regeneration is disabled.
+Safe zone = shop + inner ring. Stepping from a ring into the safe zone restores full health at once; after that, health regenerates at 10 HP/sec there (for damage taken inside it, such as carrying a Radioactive freak). Roblox's default health regeneration is disabled.
 
 Biomes (looks in `Config/Biomes.luau`, built by `tools/BuildBiomes.luau`):
 
@@ -106,7 +111,7 @@ Biomes (looks in `Config/Biomes.luau`, built by `tools/BuildBiomes.luau`):
 ## 4. Player
 
 - Health: 100
-- Walk speed: `min(16 + 2.5 × shoesLevel, 55)`. Each Shoes level is a noticeable jump; the cap of 55 is reached around Ring 4. Above that, Roblox characters get hard to steer and the client struggles to stream the map in ahead of the player, so later rings need travel aids rather than more raw speed.
+- Walk speed: `min(16 + 4.2 × shoesLevel, 55)`. Each Shoes level is a noticeable jump; the cap of 55 is reached at level 10, the first Ring 4 level. Above that, Roblox characters get hard to steer and the client struggles to stream the map in ahead of the player, so later rings need travel aids rather than more raw speed.
 - **Dash** (F, or an on-screen button on mobile): once Shoes is maxed, the player can buy a Dash that bursts them about 50 studs over 0.4 s in the direction they're moving (or facing). Walls and closed doors still stop it. The cooldown starts at 8 s and each Dash Recharge level takes 1 s off, down to 3 s. At 3 s it adds roughly 16 studs/s on average, about 30% faster trips to the outer rings. The dash runs on the player's own client for instant response; the server enforces the cooldown.
 - Carry slots: 9. Each slot holds one freak.
 - Carrying does not slow the player.
@@ -116,22 +121,28 @@ Biomes (looks in `Config/Biomes.luau`, built by `tools/BuildBiomes.luau`):
 
 Damage per second while in a ring:
 
-`damage = tier.radiationDps × 0.85 ^ hazmatLevel`
+`damage = tier.radiationDps × 0.76 ^ hazmatLevel`
 
-Raw radiation doubles every ring (8, 16, 32, 64, 128 HP/s for Rings 1–5). Each Hazmat level multiplies damage by 0.85, and 5 more levels unlock with each ring (section 7), so gear grows at the same pace as radiation. A player geared for ring N finds every earlier ring progressively cheaper, so crossing them costs about the same however far out the target ring is. That's what keeps 10 rings survivable. With no suit, 100 HP lasts 12.5 seconds in Ring 1: enough to grab one or two freaks near the barrier and get back.
+`radiationDps = 6 × (1.03 / 0.76³) ^ (tier − 1)`: 6, 14.1, 33, 77.5 and 181.9 HP/s for Rings 1–5 (`Config/Tiers`). Each Hazmat level multiplies damage by 0.76, and 3 more levels unlock with each ring (section 7). Raw radiation grows by exactly what one ring's 3 levels block (0.76³ ≈ 0.44), times 1.03. Because it's computed from the Hazmat numbers, retuning Hazmat moves radiation with it, and the feel holds at any number of rings:
+
+- **Unlock jump:** a newly unlocked ring runs about 2.3× hotter until the player buys its 3 Hazmat levels. This is the "each tier hits hard" moment, and it's the same every ring.
+- **Slow creep:** fully geared, each ring is about 3% harder than the last (2.6 HP/s in Ring 1, 3.0 in Ring 5, 3.4 in Ring 10). Radiation that simply doubled per ring would instead get easier each ring (11% less per ring), because each ring's Hazmat blocks more than double.
+- **Crossing earlier rings** gets cheaper the further a player's gear is ahead of them.
+
+With no suit, 100 HP lasts about 17 seconds in Ring 1: enough to grab one or two freaks near the barrier and get back.
 
 The server applies it once per second based on the player's distance from the center. The client only displays it.
 
 Tuning target: a ring is tense the moment it unlocks and comfortable once the player has bought that ring's gear. Seconds a player can spend inside ring N after crossing the earlier rings both ways and saving enough health to get back (100 HP, rings 150 wide, Shoes and Hazmat at the same level):
 
-| Ring | Just unlocked (gear level 5 × (N − 1)) | Fully geared for it (gear level 5 × N) |
+| Ring | Just unlocked (gear level 3 × (N − 1)) | Fully geared for it (gear level 3 × N) |
 |------|----------------------------------------|----------------------------------------|
-| 1 | 12.5 | 28 |
-| 2 | 9 | 28 |
-| 3 | 10 | 32 |
-| 4 | 13 | 36 |
-| 5 | 15 | 40 |
-| 10 (future) | 31 | 77 |
+| 1 | 17 | 38 |
+| 2 | 12 | 34 |
+| 3 | 11 | 32 |
+| 4 | 11 | 31 |
+| 5 | 11 | 30 |
+| 10 (future) | 9 | 25 |
 
 ### Death
 
@@ -152,10 +163,10 @@ A freak is defined by species, tier, and rarity.
 | Tier | Ring | Population | Radiation DPS | Base income ($/sec) | Base hold (sec) | Freak speed |
 |------|------|------------|---------------|---------------------|-----------------|-------------|
 | 1 | Ring 1 | 70 | 6 | 1 | 1.0 | 6 |
-| 2 | Ring 2 | 112 | 16 | 7.5 | 2.0 | 9 |
-| 3 | Ring 3 | 154 | 32 | 75 | 3.5 | 12 |
-| 4 | Ring 4 | 196 | 64 | 750 | 5.5 | 14 |
-| 5 | Ring 5 | 238 | 128 | 7,500 | 8.0 | 16 |
+| 2 | Ring 2 | 112 | 14.1 | 7.5 | 2.0 | 9 |
+| 3 | Ring 3 | 154 | 33 | 75 | 3.5 | 12 |
+| 4 | Ring 4 | 196 | 77.5 | 750 | 5.5 | 14 |
+| 5 | Ring 5 | 238 | 181.9 | 7,500 | 8.0 | 16 |
 
 Population is Ring 1's density (70 freaks over Ring 1's area) times each ring's area, computed in config, so it stays right if ring width or count changes. Future rings continue the pattern: 280, 322, 364, 406, 448 for Rings 6–10.
 
@@ -175,7 +186,7 @@ The two top rarities are made to be spotted from across a ring: a light, a strea
 
 ### Freakpedia
 
-A collection book with an entry for every species at every rarity (15 species × 7 rarities = 105 entries). Catching a freak isn't enough: a species at a rarity becomes a new entry the first time the player puts it in an incubator. New entries wait in the book until the player claims them by clicking CLAIM on the species' card; only claimed entries pay out and count toward pages. Freaks already on a player's farm when the Freakpedia launched were added as claimed, once. Rewards (all in `Config/Freakpedia`):
+A collection book with an entry for every species at every rarity (15 species × 7 rarities = 105 entries). Catching a freak isn't enough: a species at a rarity becomes a new entry the first time the player brings one home and uses it, by putting it in an incubator, turning it in at a gate or selling it. New entries wait in the book until the player claims them by clicking CLAIM on the species' card; only claimed entries pay out and count toward pages. Freaks already on a player's farm when the Freakpedia launched were added as claimed, once. Rewards (all in `Config/Freakpedia`):
 
 - Claiming a new entry pays 1× that freak's sell price.
 - A ring's page is complete once every species of that ring has been caught at Common, Uncommon, Rare, Epic and Legendary. Each complete page gives a permanent +5% farm income.
@@ -253,7 +264,7 @@ The farm is also a showcase. Every freak a player keeps stands in its own glass 
 
 - Each player is assigned a free plot when they join. The plot shows their name on an owner sign.
 - Plot layout: a lab floor with a center aisle running front to back (front = the side facing the shop), 16 glass incubators in a 4×4 grid split by the aisle, a collection pad on the ground just in front of the plot, and a value sign beside it. Incubators are numbered front row first. Incubators up to the player's capacity look unlocked; the rest look locked. Each capacity level unlocks the next one.
-- Starting capacity: 3 freaks (incubators 1–3 unlocked).
+- Starting capacity: 2 freaks (incubators 1–2 unlocked), then 2 more per ring.
 - To place freaks, use the **Farm** prompt at the front of your own plot's aisle to open the farm panel, then place freaks one at a time or with **Place all**. Each one goes to the lowest-numbered empty unlocked incubator. With every unlocked incubator full, placing is refused with a "Farm full" message. The Farm prompt only exists on your own plot; the panel closes with its X or when you walk off the plot.
 - Placed freaks are visible to everyone.
 
@@ -279,7 +290,7 @@ Inside a plot, measured from the front-left corner (x across the width, y back a
 - Incubators are numbered 1–16, front row first, left to right.
 - An incubator is a lit floor, four glass walls, metal corner posts, and a glass lid. The plot itself has no outer walls or roof, so the freaks can be seen from outside.
 - Unlocked incubators have clear glass and a lit floor. Locked incubators are greyed out (smoky glass, dark floor, light off) until upgraded. They carry no number or icon; the order is implied.
-- Capacity tops out at 16 (3 starting + 13 Farm Capacity levels), so a fully upgraded farm fills every incubator.
+- Capacity tops out at 16 (2 starting + 14 Farm Capacity levels, all by Ring 7), so a fully upgraded farm fills every incubator. Rings 8+ need extra floors (section 14).
 
 Freaks in incubators:
 
@@ -295,8 +306,9 @@ Freaks in incubators:
 ### Offline earnings
 
 - When the player leaves, save the timestamp.
-- When they return, add `farm income per second × seconds away` to the uncollected pool, capped at the offline limit.
-- Starting offline limit: 1 hour of earnings.
+- When they return, add half of `farm income per second × seconds away` to the uncollected pool, capped at the offline limit.
+- The offline limit is money, not time: a share of the player's current ring's gear budget (section 7). It starts at 1/4, and the ring's two Offline Capacity levels raise it to 1/3, then 1/2 (`Economy.offlineBudgetShares`). Unlocking a new ring drops it back to 1/4, but of a budget about 20× bigger.
+- With the section 7 farm, the 1/4 limit fills in about 15 min away in Ring 1 and about 2 h in Ring 5; the 1/2 limit in about 25 min and 4 h.
 - Offline earnings are never doubled by the 2x Money pass.
 - Show a "While you were away you earned $X" popup on join.
 
@@ -308,21 +320,30 @@ Freaks in incubators:
 
 Cost of the next level = `baseCost × growth ^ currentLevel`, rounded to the nearest dollar.
 
-**Gear** (Shoes, Hazmat Suit, Stronger Grip) unlocks with progress: a player can buy up to `5 × highestTier` levels of each, so 5 more levels open every time a ring unlocks. Gear grows ×35^(1/5) ≈ ×2.04 per level, which makes each ring's 5 levels cost 35× the previous ring's. Income grows less than that per ring (×7.5–10), so gearing up for each ring takes longer than for the one before (the doubling pace in section 1).
+**Ring-priced upgrades** (Shoes, Hazmat Suit, Stronger Grip, Farm Capacity, Offline Capacity) unlock `levelsPerTier` levels per unlocked tier and are priced per ring (`Formulas.upgradeCost`):
 
-| Upgrade | Effect per level | Max level | Level cap | Base cost | Growth | Cost of level 5 | Cost of last level |
-|---------|------------------|-----------|-----------|-----------|--------|-----------------|--------------------|
-| Shoes | +2.5 walk speed (capped at 55) | 16 | 5 per unlocked tier | 50 | ×2.04 | 859 | 2.14M |
-| Hazmat Suit | Radiation damage ×0.85 | 25 (5 per ring; 50 at 10 rings) | 5 per unlocked tier | 75 | ×2.04 | 1,289 | 1.93B |
-| Stronger Grip | Grab hold time ×0.93 | 25 (5 per ring; 50 at 10 rings) | 5 per unlocked tier | 60 | ×2.04 | 1,031 | 1.55B |
-| Farm Capacity | Unlocks the next incubator | 13 | — | 150 | ×2.8 | 9,220 | 34.8M |
-| Offline Capacity | +1 hour offline limit | 7 | — | 300 | ×4 | 76,800 | 1.2M |
-| Dash | Unlocks the dash (section 4) | 1 | Requires Shoes 16 | 17.2M (8× the last Shoes level) | — | — | 17.2M |
-| Dash Recharge | −1 s dash cooldown (8 s → 3 s) | 5 | Requires Dash | 17.2M | ×2.04 | 295M | 295M |
+- **Gear budget.** A ring's full set of Shoes, Hazmat and Grip levels costs `gearBudgetRate × tier base income × average incubators × pace seconds` (`Config/Economy`). Average incubators is the mean of the Farm Capacity cap before and after the ring (2→4 for Ring 1, 4→6 for Ring 2, and so on). Pace is 0.5 h for Ring 1, then N − 1 hours. `gearBudgetRate` is 7. At 5.5 it is tuned so a farm of about 65% Rare, 25% Epic and 10% Legendary freaks (at the `Config/Rarities` income multipliers: Rare ×3, Epic ×9, Legendary ×20), plus selling the rest, buys each ring's gear in its pace time without 2x Money. Raising it slows every ring down evenly.
+- **Split.** Each gear upgrade's first level in a ring takes a share of the budget given by its `priceWeight` (Shoes 400, Hazmat 600, Grip 250), and each further level in that ring costs `growth` times more (×3, ×3, ×2). Rings where Shoes is already maxed split the budget between Hazmat and Grip.
+- **Farm and Offline Capacity** are priced off the same budget with their own weights (500 ×2.5, and 1000 ×2) but aren't part of it, since they pay for themselves.
+- **New rings** price themselves from their tier's base income: add the tier, then raise the max levels (Hazmat +3, Grip +5, Offline Capacity +2 per ring; Farm Capacity +2 once extra floors exist).
 
-Shoes stops at 16 because level 16 reaches the 55 speed cap; past that, the Dash is how players keep getting faster. Farm Capacity uses ×2.8 so its 13 levels (enough to unlock all 16 incubators) cost about 54M in total.
+Simulated time to buy each ring's gear (that farm, greedy cheapest-first buying, about 4 freaks per run): at 7, Ring 1 32 min, Ring 2 70 min, Ring 3 2.4 h, Ring 4 4 h, Ring 5 5.4 h; at 5.5, 25 min, 55 min, 1.9 h, 3.1 h, 4.25 h. Changing rarity income multipliers changes farm income, so re-tune `gearBudgetRate` with them.
 
-The first levels of each ring cost less than one run's haul there. Buying a ring's full set takes a few dozen runs or a stretch of farm income. This is the main pacing lever.
+| Upgrade | Effect per level | Max level | Levels per tier | Ring 1 prices | Growth in ring | Last level |
+|---------|------------------|-----------|-----------------|---------------|----------------|------------|
+| Shoes | +4.2 walk speed (capped at 55) | 10 | 3 | 729, 2.19k, 6.56k | ×3 | 12.8M (Ring 4) |
+| Hazmat Suit | Radiation damage ×0.76 | 15 (+3 per added ring) | 3 | 1.09k, 3.28k, 9.84k | ×3 | 2.89B |
+| Stronger Grip | Grab hold time ×0.93 | 25 (+5 per added ring) | 5 | 455 … 7.29k | ×2 | 2.14B |
+| Farm Capacity | Unlocks the next incubator | 14 (all 16 incubators by Ring 7) | 2 | 911, 2.28k | ×2.5 | 668M (Ring 5) |
+| Offline Capacity | Offline limit 1/4 → 1/3 → 1/2 of the ring's gear budget | 10 (+2 per added ring) | 2 | 1.82k, 3.64k | ×2 | 1.07B (Ring 5) |
+| Dash | Unlocks the dash (section 4) | 1 | Requires Shoes 10 | 32M (2.5× the last Shoes level) | — | 32M |
+| Dash Recharge | −1 s dash cooldown (8 s → 3 s) | 5 | Requires Dash | 32M | ×3 | 2.59B |
+
+Saves from before the 3-level change convert once on load (data version 2): Shoes and Hazmat levels × 3/5, rounded up, so Shoes 16 becomes 10 and keeps the Dash. Data version 3 adds 1 to Farm Capacity (the farm now starts with 2 incubators, so everyone keeps theirs) and cuts Offline Capacity to 2 × highest tier.
+
+Shoes stops at 10 because level 10 reaches the 55 speed cap; past that, the Dash is how players keep getting faster. Levels a player already owns above their tier's cap (from before Farm and Offline Capacity were ring-priced) are kept; only buying is capped.
+
+The first levels of each ring cost a few minutes of that ring's income; the last ones are the long goals. This is the main pacing lever.
 
 ### Items
 
@@ -391,7 +412,7 @@ Located in the shop. One free spin per UTC day. The player needs one free carry 
 
 ## 10. Monetization
 
-Build this last, after the loop is fun. Product and Game Pass IDs live in `Config/Products.luau`; negative IDs are placeholders until the products are created in Creator Hub (prices are set there, not in code). While an ID is a placeholder its Buy button explains that instead of opening a purchase prompt, and in Studio `/buy <goldenTrap|extraSpin|revive> [purchaseId]`, `/buypass money2x` and `/buyskin <key>` run the real grant code with a simulated purchase.
+Build this last, after the loop is fun. Product and Game Pass IDs live in `Config/Products.luau`; negative IDs are placeholders until the products are created in Creator Hub (prices are set there, not in code). While an ID is a placeholder its Buy button explains that instead of opening a purchase prompt, and in Studio `/buy <goldenTrap|extraSpin|revive> [purchaseId]`, `/buypass money2x` and `/buyskin <key>` run the real grant code with a simulated purchase. Studio playtests don't check real Game Pass ownership (Roblox reports the creator as owning every pass) and don't apply the free-access whitelist unless `applyInStudio` is set in `Config/FreeAccess`, so the developer plays as a normal player; `/removepass <key>` takes a simulated pass back off the save.
 
 | Product | Type | Behavior |
 |---------|------|----------|
@@ -432,7 +453,7 @@ Rules:
 | Panel style | Every menu panel (shop, sell, farm, gate, wheel) is 440×540, docked right, with a header bar and border in its own accent color (shop blue, sell gold, farm green, gate purple, wheel pink; `UiKit.accents`) and a drop shadow. While any of them is open, items can't be used and the item and Dash buttons hide, so a tap meant for the panel can't set a trap. |
 | Touch controls | On phones and tablets (`TouchLayout`) the thumb buttons gather on the right: a bigger jump button bottom right, Grab above it, a round Freakpedia book above that, and a column to their left with Net, Trap and Gold from the bottom up, then Dash. Sized in screen pixels (phone: 92 px jump/grab, 62 px items; tablet: 140 and 92) and not shrunk by the UI scaling that fits the rest of the HUD on small screens. Key hints are hidden. The Freakpedia book hides while a menu panel is open, since panels open on that side. In Studio, `/touchmode on|off` switches to this layout. |
 | Popups | Offline earnings on join, revive offer on death, tier unlocked, Freakpedia page complete |
-| Freakpedia | Opened by the book button on the left of the HUD (on touch devices, a round book on the right; see Touch controls) (which shows a "P" keycap on keyboards), or P. The panel can be dragged by its title bar and stays where it's put. A new entry (on putting a freak in an incubator) floats "📖 New Freakpedia entry!" over the player's head. The red badge on the button's top-right corner counts entries waiting to be claimed, and each ring tab shows its own count. A tab per ring. Each species card shows its model (a black silhouette until collected), its name ("???" until then) and a pip per rarity, lit once claimed and half-lit while waiting. A card with waiting entries gets a gold border and a CLAIM +$reward button, which claims all of them and floats the reward over the player's head. The footer shows the page reward, the total bonus and pages complete. |
+| Freakpedia | Opened by the book button on the left of the HUD (on touch devices, a round book on the right; see Touch controls) (which shows a "P" keycap on keyboards), or P. The panel can be dragged by its title bar and stays where it's put. A new entry (on incubating, turning in or selling a freak) floats "📖 New Freakpedia entry!" over the player's head. The red badge on the button's top-right corner counts entries waiting to be claimed, and each ring tab shows its own count. A tab per ring. Each species card shows its model (a black silhouette until collected), its name ("???" until then) and a pip per rarity, lit once claimed and half-lit while waiting. A card with waiting entries gets a gold border and a CLAIM +$reward button, which claims all of them and floats the reward over the player's head. The footer shows the page reward, the total bonus and pages complete. |
 
 ---
 
@@ -447,6 +468,7 @@ The server owns and validates everything that matters: money, health, radiation,
 A full 5-ring map holds 770 freaks (about 2,600 at 10 rings), so ring count must not drive the cost:
 
 - **Only rings near players are simulated.** A ring's freaks spawn (its full population at once) when any player comes within 60 studs of it, and all despawn once no player has been that close for 60 seconds. With 8 players, at most 8 rings are ever active and usually 2–3, so 10 rings cost about what 2–3 do. Despawning ends any traps and pins in that ring.
+- **Planned for Rings 6+: activate by sector, not whole ring.** Outer rings are much longer (Ring 10 holds 448 freaks around a circle about 10,000 studs long) but players only use a small stretch of one. Split each ring into angular sectors about 300 studs long and spawn and despawn by sector, using the same rules as rings now. Sectors are a server-side cost saving only: freaks are shared, so every player near an active sector sees the same freaks, positions and rarities. A sector stays active while anyone is near it. Density is unchanged, so a ring feels the same.
 - **Clients only animate nearby freaks**, within 300 studs; farther ones are left where they are. Workspace streaming keeps distant parts of the map off the client entirely.
 
 - Freaks are anchored models with no `Humanoid`.
@@ -585,7 +607,7 @@ Build in this order. Do not start a milestone until the previous one passes its 
 
 - **Status effects.** Freaks can carry effects such as Shocked, Frozen, or Flamed that raise their income multiplier. Effects come from changing environment conditions in the rings. The `effects` field and the multiplier hook in section 12 are there for this.
 - More tiers beyond Ring 3
-- Extra farm floors. When capacity needs to pass 16, each new floor adds 16 more incubators on the same footprint. Keep the space above every plot empty for this.
+- Extra farm floors. Capacity reaches 16 at Ring 7; Ring 8 needs incubator 17. Each new floor adds 16 more incubators on the same footprint, built on a plot only once its owner can unlock one there. Keep the space above every plot empty for this.
 - More or different rarities
 - Radiation that ramps up the longer you stay in a ring
 - Freaks that flee or fight back in higher tiers

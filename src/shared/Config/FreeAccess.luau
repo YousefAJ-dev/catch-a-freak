@@ -12,6 +12,10 @@
 --
 -- `passId`: an optional Game Pass that also grants free access (a paid VIP
 -- whitelist). 0 for none; set it to the pass's ID from Creator Hub to sell it.
+--
+-- `applyInStudio`: false plays Studio playtests as a normal player (no free
+-- 2x Money, passes or revives), to test pacing. /freeaccess on still turns it
+-- on for a session.
 
 return {
 	userIds = {
@@ -19,5 +23,6 @@ return {
 		292016505,
 	},
 	passId = 0,
+	applyInStudio = false,
 	goldenTrapPriceMultiplier = 3,
 }

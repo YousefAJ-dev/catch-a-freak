@@ -20,6 +20,7 @@ local Release = require(Shared.Config.Release)
 local DataService = require(script.Parent.DataService)
 local CarryService = require(script.Parent.CarryService)
 local FarmService = require(script.Parent.FarmService)
+local FreakpediaService = require(script.Parent.FreakpediaService)
 
 local CHECK_INTERVAL = 0.25
 
@@ -87,6 +88,7 @@ local function onTurnIn(player: Player, requirementIndex: any, source: any, inde
 		return
 	end
 	DataService.addRequirementProgress(player, requirementIndex)
+	FreakpediaService.discover(player, taken)
 	notify(player, ("Turned in %s %s (%d/%d)"):format(taken.rarity, taken.species, data.gateProgress[requirementIndex], requirement.count))
 
 	for i, other in gate.requirements do

@@ -1,7 +1,8 @@
 --!strict
 -- Tracks which zone each player is in (by distance from the map center) and
 -- enforces tier access: a player found in a ring above their highest unlocked
--- tier is sent back to the shop.
+-- tier is sent back to the shop. Stepping from a ring into the safe zone
+-- restores full health (RadiationService regenerates it there after that).
 --
 -- Mirrors the zone onto the Player as attributes for the HUD:
 --   "Zone"     zone name, e.g. "Ring1"
@@ -55,6 +56,10 @@ local function update(player: Player)
 		tier = 0
 	end
 
+	-- Stepping out of a ring into the safe zone heals fully.
+	if tier == 0 and (zoneTiers[player] or 0) > 0 then
+		humanoid.Health = humanoid.MaxHealth
+	end
 	zoneTiers[player] = tier
 	player:SetAttribute("Zone", zone.name)
 	player:SetAttribute("ZoneTier", tier)
