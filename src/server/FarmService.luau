@@ -12,9 +12,18 @@
 --   "Uncollected" money waiting on the collection pad
 --   "OnOwnPlot"   standing on (or in front of) their plot; opens the farm panel
 
+--
+-- Incubator skins (DESIGN.md section 10): while the owner has an incubator
+-- skin set equipped, their plot is built as that skin instead. A copy of its
+-- template (ServerStorage.IncubatorSkins, rigged by Shared.Incubators.IncubatorRig)
+-- is scaled to fill the plot and the default incubators and aisle are hidden.
+-- Each incubator number maps to the skin cell in the same spot, freaks stand
+-- on that cell's tile, and the tile shows locked / empty / the rarity color.
+
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerStorage = game:GetService("ServerStorage")
 
 local Shared = ReplicatedStorage.Shared
 local Formulas = require(Shared.Formulas)
@@ -23,6 +32,8 @@ local Remotes = require(Shared.Remotes)
 local FarmVisuals = require(Shared.FarmVisuals)
 local World = require(Shared.Config.World)
 local Rarities = require(Shared.Config.Rarities)
+local Products = require(Shared.Config.Products)
+local IncubatorData = require(Shared.Incubators.IncubatorData) :: any
 local DataService = require(script.Parent.DataService)
 local CarryService = require(script.Parent.CarryService)
 local FreakpediaService = require(script.Parent.FreakpediaService)
@@ -33,6 +44,25 @@ local CHECK_INTERVAL = 0.2
 local LABEL_RANGE = 20 -- a placed freak's label only shows this close
 local MAX_FREAK_WIDTH = 9 -- placed freaks are scaled down to fit their incubator
 local MAX_FREAK_HEIGHT = 15
+local SKIN_HEADROOM = 0.85 -- in a skin, freaks fill at most this much of a cell's height
+local SKIN_SIGN_GAP = 2 -- studs between a skin's top and the raised owner sign
+local LOCKED_TILE = Color3.fromRGB(40, 40, 46)
+-- The handover's lights are tuned for a lone showcase model; at full strength
+-- they bleach the freaks in the cells, so a plot's copy is dimmed and kept local.
+local SKIN_LIGHT_BRIGHTNESS = 0.4 -- multiplier
+local SKIN_LIGHT_RANGE = 16 -- studs
+local SKIN_GROUND_MAX = 3 -- studs: skin ground cover the front pads are lifted onto
+local SKIN_STEP_MAX = 0.6 -- studs: a taller step up into a skin gets a ramp
+local SKIN_RAMP_SLOPE = 2.5 -- ramp length per stud of height
+local SKIN_WALKWAY_WIDTH = 1.5 -- design units (IncubatorData), the skins' walkway
+
+type Skin = {
+	name: string,
+	model: Model,
+	slots: { [number]: Attachment }, -- incubator number -> the cell's slot
+	tiles: { [number]: BasePart }, -- incubator number -> the cell's floor tile
+	freakHeight: number,
+}
 
 type FarmFreak = {
 	species: string,
@@ -48,6 +78,7 @@ type Plot = {
 	base: BasePart,
 	owner: Player?,
 	placed: { [number]: Model }, -- pad -> freak model
+	skin: Skin?, -- the owner's incubator skin, when one is on the plot
 }
 
 local FarmService = {}
@@ -109,6 +140,19 @@ end
 local function refreshIncubators(plot: Plot)
 	local farm = if plot.owner then farmOf(plot.owner) else {}
 	local capacity = capacityOf(plot.owner)
+	local skin = plot.skin
+	if skin then
+		for pad, tile in skin.tiles do
+			local record = recordAt(farm, pad)
+			local unlocked = pad <= capacity
+			tile.Color = if not unlocked
+				then LOCKED_TILE
+				elseif record then Rarities.byId[record.rarity].color
+				else tile:GetAttribute("SkinColor") :: Color3
+			tile.Material = if unlocked then Enum.Material.Neon else Enum.Material.SmoothPlastic
+		end
+		return
+	end
 	for _, incubator in (plot.model:FindFirstChild("Pads") :: Folder):GetChildren() do
 		local pad = incubator:GetAttribute("PadIndex") :: number
 		local record = recordAt(farm, pad)
@@ -138,20 +182,26 @@ end
 -- Puts a freak model in its incubator: scaled down to fit if needed, facing
 -- the front, with a label that only shows up close.
 local function showFreak(plot: Plot, record: FarmFreak)
-	local incubator = (plot.model:FindFirstChild("Pads") :: Folder):FindFirstChild("Pad" .. record.pad) :: Model
-	local floor = incubator:FindFirstChild("Floor") :: BasePart
 	local rarity = Rarities.byId[record.rarity]
 	local model, body = FreakModels.build(FreakModels.species(record.species))
 	model.Name = "Placed" .. record.pad
 
+	local skin = plot.skin
+	local maxHeight = if skin then math.min(MAX_FREAK_HEIGHT, skin.freakHeight) else MAX_FREAK_HEIGHT
 	local size = model:GetExtentsSize()
-	local scale = math.min(1, MAX_FREAK_WIDTH / math.max(size.X, size.Z), MAX_FREAK_HEIGHT / size.Y)
+	local scale = math.min(1, MAX_FREAK_WIDTH / math.max(size.X, size.Z), maxHeight / size.Y)
 	if scale < 1 then
 		model:ScaleTo(scale)
 	end
 	FreakModels.decorate(body, record.rarity, scale)
-	-- The incubator is aligned with the plot, whose -Z faces the shop.
-	model:PivotTo(floor.CFrame * CFrame.new(0, floor.Size.Y / 2, 0))
+	-- Facing the front of the plot, whose -Z faces the shop.
+	if skin then
+		model:PivotTo(CFrame.new(skin.slots[record.pad].WorldPosition) * plot.base.CFrame.Rotation)
+	else
+		local incubator = (plot.model:FindFirstChild("Pads") :: Folder):FindFirstChild("Pad" .. record.pad) :: Model
+		local floor = incubator:FindFirstChild("Floor") :: BasePart
+		model:PivotTo(floor.CFrame * CFrame.new(0, floor.Size.Y / 2, 0))
+	end
 
 	local label = Instance.new("BillboardGui")
 	label.Name = "Label"
@@ -187,6 +237,277 @@ local function hideFreak(plot: Plot, pad: number)
 		model:Destroy()
 		plot.placed[pad] = nil
 	end
+end
+
+-- Skins ----------------------------------------------------------------------
+
+-- The incubator skin template for the owner's equipped skin set, if any.
+local function skinTemplate(player: Player?): (string?, Model?)
+	local key = player and player:GetAttribute("EquippedSkin")
+	local folder = ServerStorage:FindFirstChild("IncubatorSkins")
+	for _, set in Products.skinSets do
+		if set.key == key and set.incubator and folder then
+			local data = IncubatorData.Skins[set.incubator]
+			local template = data and folder:FindFirstChild(data.ModelName)
+			if template and template:IsA("Model") then
+				return set.incubator, template
+			end
+		end
+	end
+	return nil, nil
+end
+
+-- Hides (or brings back) the plot's own incubators and aisle under a skin.
+local function setDefaultLabVisible(plot: Plot, visible: boolean)
+	local parts = { plot.model:FindFirstChild("Aisle") }
+	for _, part in (plot.model:FindFirstChild("Pads") :: Folder):GetDescendants() do
+		table.insert(parts, part)
+	end
+	for _, part in parts do
+		if not (part and part:IsA("BasePart")) then
+			continue
+		end
+		local hidden = part:GetAttribute("HiddenBySkin") ~= nil
+		if visible and hidden then
+			part.Transparency = part:GetAttribute("HiddenBySkin") :: number
+			part.CanCollide = part:GetAttribute("CollideBeforeSkin") :: boolean
+			part.CanQuery = true
+			part:SetAttribute("HiddenBySkin", nil)
+			part:SetAttribute("CollideBeforeSkin", nil)
+		elseif not visible and not hidden then
+			part:SetAttribute("HiddenBySkin", part.Transparency)
+			part:SetAttribute("CollideBeforeSkin", part.CanCollide)
+			part.Transparency = 1
+			part.CanCollide = false
+			part.CanQuery = false
+		end
+	end
+end
+
+-- Raises the owner sign clear of a skin's roof ornaments, or puts it back.
+local function placeOwnerSign(plot: Plot, skinModel: Model?)
+	local sign = plot.model:FindFirstChild("OwnerSign") :: Model
+	local home = sign:GetAttribute("HomePivot") :: CFrame?
+	if not home then
+		home = sign:GetPivot()
+		sign:SetAttribute("HomePivot", home)
+	end
+	local pivot = home :: CFrame
+	if skinModel then
+		local box, boxSize = skinModel:GetBoundingBox()
+		local skinTop = box.Position.Y + boxSize.Y / 2
+		local signBottom = pivot.Position.Y - sign:GetExtentsSize().Y / 2
+		pivot += Vector3.new(0, math.max(0, skinTop + SKIN_SIGN_GAP - signBottom), 0)
+	end
+	sign:PivotTo(pivot)
+end
+
+-- Lifts the collection and 2x Money pads onto any solid ground a skin spreads
+-- in front of the plot (Volcano's lava rocks), so they stay visible; or puts
+-- them back.
+local function placeFrontPads(plot: Plot, skinModel: Model?)
+	local params = OverlapParams.new()
+	params.FilterType = Enum.RaycastFilterType.Include
+	params.FilterDescendantsInstances = { skinModel }
+	for _, name in { "CollectPad", "MoneyPad" } do
+		local pad = plot.model:FindFirstChild(name)
+		if not (pad and pad:IsA("BasePart")) then
+			continue
+		end
+		local home = pad:GetAttribute("HomeCFrame") :: CFrame?
+		if not home then
+			home = pad.CFrame
+			pad:SetAttribute("HomeCFrame", home)
+		end
+		local cframe = home :: CFrame
+		if skinModel then
+			local padTop = cframe.Position.Y + pad.Size.Y / 2
+			local groundTop = padTop
+			for _, part in workspace:GetPartBoundsInBox(cframe, pad.Size + Vector3.new(0, 20, 0), params) do
+				-- Only low ground cover: a skin's columns are one mesh with one
+				-- box around the whole building, whose edge can graze the pad.
+				local top = part.Position.Y + part.Size.Y / 2
+				if part.CanCollide and top - padTop <= SKIN_GROUND_MAX then
+					groundTop = math.max(groundTop, top)
+				end
+			end
+			cframe += Vector3.new(0, groundTop - padTop + (if groundTop > padTop then 0.05 else 0), 0)
+		end
+		pad.CFrame = cframe
+	end
+end
+
+local function removeSkin(plot: Plot)
+	if plot.skin then
+		plot.skin.model:Destroy()
+		plot.skin = nil
+	end
+	setDefaultLabVisible(plot, true)
+	placeOwnerSign(plot, nil)
+	placeFrontPads(plot, nil)
+end
+
+-- Some skins stand on a raised stone base whose front edge is a step too tall
+-- to walk up (Sakura). An invisible ramp up to the walkway fixes that.
+-- `ground` is the plot's top surface, entrance toward its -Z.
+local function addEntranceRamp(model: Model, ground: CFrame, unit: number)
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Include
+	params.FilterDescendantsInstances = { model }
+	params.RespectCanCollide = true
+	local half = World.farm.plotSize / 2
+	for z = -half - 4, -half + 6, 0.5 do
+		local from = ground:PointToWorldSpace(Vector3.new(0, 10, z))
+		local hit = workspace:Raycast(from, ground:VectorToWorldSpace(Vector3.new(0, -12, 0)), params)
+		local height = if hit then ground:PointToObjectSpace(hit.Position).Y else 0
+		if height > SKIN_STEP_MAX then
+			local run = height * SKIN_RAMP_SLOPE
+			local ramp = Instance.new("WedgePart") -- slopes up toward +Z, into the skin
+			ramp.Name = "EntranceRamp"
+			ramp.Size = Vector3.new(SKIN_WALKWAY_WIDTH * unit, height, run)
+			ramp.CFrame = ground * CFrame.new(0, height / 2, z - run / 2)
+			ramp.Anchored = true
+			ramp.Transparency = 1
+			ramp.CanTouch = false
+			ramp.CanQuery = false
+			ramp.CastShadow = false
+			ramp.Parent = model
+			return
+		elseif height > 0 then
+			return -- low enough to step onto
+		end
+	end
+end
+
+-- The skins' columns don't collide (their collision shapes swell into the
+-- walkway), which leaves gaps between the glass panes. An invisible block over
+-- each bank of cells keeps players out of the cells and the walkway open.
+local function addCellBlockers(model: Model, ground: CFrame, unit: number)
+	local slots = IncubatorData.Slots
+	local inner, outer = math.huge, 0 -- |x| of the cells' walkway and outside edges
+	local front, back = math.huge, -math.huge
+	for _, slot in slots do
+		inner = math.min(inner, math.abs(slot.X))
+		outer = math.max(outer, math.abs(slot.X))
+		front = math.min(front, slot.Z)
+		back = math.max(back, slot.Z)
+	end
+	local cell = outer - inner -- slot spacing equals cell width
+	inner -= cell / 2
+	outer += cell / 2
+	front -= cell / 2
+	back += cell / 2
+	local height = IncubatorData.RoofY - IncubatorData.FloorY
+	for _, side in { -1, 1 } do
+		local block = Instance.new("Part")
+		block.Name = "CellBlocker"
+		block.Size = Vector3.new(outer - inner, height, back - front) * unit
+		block.CFrame = ground * CFrame.new(Vector3.new(side * (inner + outer) / 2, IncubatorData.FloorY + height / 2, (front + back) / 2) * unit)
+		block.Anchored = true
+		block.Transparency = 1
+		block.CanTouch = false
+		block.CanQuery = false
+		block.CastShadow = false
+		block.Parent = model
+	end
+end
+
+-- Builds a copy of a skin template on the plot.
+local function addSkin(plot: Plot, name: string, template: Model): Skin
+	local model = template:Clone()
+	model.Name = "Skin"
+	local base: BasePart? = nil
+	local tilesBySlot: { [number]: BasePart } = {}
+	for _, part in model:GetDescendants() do
+		if part:IsA("BasePart") then
+			if part:GetAttribute("IncubatorGroup") == "Base_Platform" then
+				base = part
+			end
+			local slot = part:GetAttribute("SlotIndex")
+			if slot then
+				tilesBySlot[slot :: number] = part
+			end
+		end
+	end
+	local platform = assert(base, ("skin %s has no Base_Platform"):format(name))
+	-- Scale so the base fills the plot, then stand it on the plot facing the
+	-- same way (the skin's entrance is its -Z, like the plot's front).
+	local factor = World.farm.plotSize / math.max(platform.Size.X, platform.Size.Z)
+	model:ScaleTo(model:GetScale() * factor)
+	local unit = ((model:GetAttribute("ModelUnit") :: number?) or IncubatorData.Unit) * factor
+	model:SetAttribute("ModelUnit", unit)
+	model:PivotTo(plot.base.CFrame * CFrame.new(0, plot.base.Size.Y / 2, 0))
+	for _, instance in model:GetDescendants() do
+		if instance:IsA("BasePart") and instance.CanCollide and instance.Material == Enum.Material.Ice then
+			-- looks like ice, walks like a floor (Ice's own friction is slippery)
+			instance.CustomPhysicalProperties = PhysicalProperties.new(Enum.Material.SmoothPlastic)
+		elseif instance:IsA("Light") then
+			local brightness = ((instance:GetAttribute("BaseBrightness") :: number?) or instance.Brightness) * SKIN_LIGHT_BRIGHTNESS
+			instance:SetAttribute("BaseBrightness", brightness) -- IncubatorVfxController animates around this
+			instance.Brightness = brightness
+			local ranged = instance :: any
+			ranged.Range = math.min(ranged.Range, SKIN_LIGHT_RANGE)
+		end
+	end
+
+	-- Each incubator number takes the skin cell nearest its own incubator.
+	local slotFolder = model:FindFirstChild("Slots") :: BasePart
+	local free: { Attachment } = {}
+	for _, child in slotFolder:GetChildren() do
+		if child:IsA("Attachment") then
+			table.insert(free, child)
+		end
+	end
+	local slots: { [number]: Attachment } = {}
+	local tiles: { [number]: BasePart } = {}
+	for _, incubator in (plot.model:FindFirstChild("Pads") :: Folder):GetChildren() do
+		local pad = incubator:GetAttribute("PadIndex") :: number
+		local floor = (incubator :: Model):FindFirstChild("Floor") :: BasePart
+		local best, bestDistance = 1, math.huge
+		for i, attachment in free do
+			local offset = attachment.WorldPosition - floor.Position
+			local distance = Vector3.new(offset.X, 0, offset.Z).Magnitude
+			if distance < bestDistance then
+				best, bestDistance = i, distance
+			end
+		end
+		local attachment = table.remove(free, best) :: Attachment
+		slots[pad] = attachment
+		local tile = tilesBySlot[attachment:GetAttribute("SlotIndex") :: number]
+		if tile then
+			tile:SetAttribute("SkinColor", tile.Color)
+			tiles[pad] = tile
+		end
+	end
+
+	model.Parent = plot.model
+	setDefaultLabVisible(plot, false)
+	placeOwnerSign(plot, model)
+	placeFrontPads(plot, model)
+	local ground = plot.base.CFrame * CFrame.new(0, plot.base.Size.Y / 2, 0)
+	addEntranceRamp(model, ground, unit)
+	addCellBlockers(model, ground, unit)
+	local cellHeight = (IncubatorData.RoofY - IncubatorData.FloorY) * unit
+	return { name = name, model = model, slots = slots, tiles = tiles, freakHeight = cellHeight * SKIN_HEADROOM }
+end
+
+-- Puts the owner's equipped incubator skin on the plot (or the default lab
+-- when none is equipped) and re-places their freaks to match.
+local function applySkin(plot: Plot)
+	local name, template = skinTemplate(plot.owner)
+	for pad in plot.placed do
+		hideFreak(plot, pad)
+	end
+	removeSkin(plot)
+	if name and template then
+		plot.skin = addSkin(plot, name, template)
+	end
+	if plot.owner then
+		for _, record in farmOf(plot.owner) do
+			showFreak(plot, record)
+		end
+	end
+	refreshIncubators(plot)
 end
 
 -- Where `position` is relative to the plot (x across, z front (-) to back (+)).
@@ -444,10 +765,7 @@ local function claimPlot(player: Player)
 			plot.owner = player
 			plotOf[player] = plot
 			player:SetAttribute("PlotIndex", plot.index)
-			for _, record in farmOf(player) do
-				showFreak(plot, record)
-			end
-			refreshIncubators(plot)
+			applySkin(plot) -- builds the plot and places their freaks
 			replicateFarm(player, plot)
 			local lastSeen = DataService.previousLastSeen(player)
 			if lastSeen > 0 then
@@ -457,6 +775,11 @@ local function claimPlot(player: Player)
 				if plotOf[player] == plot then
 					refreshIncubators(plot)
 					replicateFarm(player, plot)
+				end
+			end)
+			player:GetAttributeChangedSignal("EquippedSkin"):Connect(function()
+				if plotOf[player] == plot then
+					applySkin(plot)
 				end
 			end)
 			-- The first character usually spawns before the plot is claimed.
@@ -480,6 +803,7 @@ local function releasePlot(player: Player)
 	for pad in plot.placed do
 		hideFreak(plot, pad)
 	end
+	removeSkin(plot)
 	setOwnerText(plot, FarmVisuals.unclaimedText(plot.index))
 	setValueSign(plot, 0, 0)
 	refreshIncubators(plot)

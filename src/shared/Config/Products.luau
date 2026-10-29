@@ -16,7 +16,9 @@ export type SkinLook = {
 	goggles: Color3?,
 	glow: Color3?,
 }
-export type SkinSet = { key: string, passId: number, name: string, description: string, look: SkinLook }
+-- `incubator` names a skin in Shared.Incubators.IncubatorData: FarmService builds
+-- the owner's plot as that skin while the set is equipped.
+export type SkinSet = { key: string, passId: number, name: string, description: string, look: SkinLook?, incubator: string? }
 -- A Game Pass with a gameplay effect, owned for good once bought.
 export type Pass = { key: string, passId: number, name: string, description: string }
 
@@ -51,88 +53,70 @@ local passes: { [string]: Pass } = {
 	},
 }
 
--- Cosmetic only; the looks themselves arrive with the art in Milestone 10.
+-- Cosmetic only. The incubator sets restyle the owner's lab plot (FarmService).
 local skinSets: { SkinSet } = {
 	{
 		key = "natureIncubator",
 		passId = -101,
 		name = "Nature Incubator",
 		description = "",
-		look = {
-			
-		},
+		incubator = "Nature",
 	},
 	{
 		key = "iceIncubator",
 		passId = -102,
 		name = "Ice Incubator",
 		description = "",
-		look = {
-			
-		},
+		incubator = "Ice",
 	},
 	{
 		key = "royalIncubator",
 		passId = -103,
 		name = "Royal Incubator",
 		description = "",
-		look = {
-			
-		},
+		incubator = "Royal",
 	},
 	{
 		key = "voidIncubator",
 		passId = -103,
 		name = "Void Incubator",
 		description = "",
-		look = {
-			
-		},
+		incubator = "Void",
 	},
 	{
 		key = "alienIncubator",
 		passId = -103,
 		name = "Alien Incubator",
 		description = "",
-		look = {
-			
-		},
+		incubator = "Alien",
 	},
 	{
 		key = "sakuraIncubator",
 		passId = -103,
 		name = "Sakura Incubator",
 		description = "",
-		look = {
-			
-		},
+		incubator = "Sakura",
 	},
 	{
 		key = "volcanoIncubator",
 		passId = -103,
 		name = "Volcano Incubator",
 		description = "",
-		look = {
-			
-		},
+		incubator = "Volcano",
 	},
 	{
 		key = "beachIncubator",
 		passId = -103,
 		name = "Beach Incubator",
 		description = "",
-		look = {
-			
-		},
+		incubator = "Beach",
 	},
 	{
 		key = "techIncubator",
 		passId = -103,
 		name = "Tech Incubator",
 		description = "",
-		look = {
-			
-		},
+		incubator = "Tech",
 	},
 }
 

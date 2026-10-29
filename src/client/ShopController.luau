@@ -169,7 +169,7 @@ function ShopController.start()
 				end)
 			end
 		end
-		UiKit.emptyNote(panel.list, #Products.skinSets + 1, "Skins are cosmetic only: they change how your character looks.")
+		UiKit.emptyNote(panel.list, #Products.skinSets + 1, "Skins are cosmetic only: an incubator skin rebuilds your lab in its style.")
 	end
 
 	local function render()
